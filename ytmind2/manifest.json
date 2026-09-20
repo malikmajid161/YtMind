@@ -1,0 +1,50 @@
+{
+  "manifest_version": 3,
+  "name": "YTMind 2.0 — AI YouTube Assistant",
+  "version": "2.0.0",
+  "description": "Multimodal multi-agent AI for YouTube. Genre-adaptive answers, Urdu support, hallucination detection, quizzes, knowledge graph, and argument maps.",
+  "permissions": [
+    "storage",
+    "notifications",
+    "alarms",
+    "tabs",
+    "activeTab",
+    "scripting",
+    "offscreen"
+  ],
+  "host_permissions": [
+    "https://www.youtube.com/*",
+    "https://api.groq.com/*"
+  ],
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["dist/content.js"],
+      "css": ["src/ui/chatbot.css"],
+      "run_at": "document_end"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["dist/*", "src/ui/*"],
+      "matches": ["https://www.youtube.com/*"]
+    }
+  ]
+}
