@@ -1,0 +1,1109 @@
+{
+  "date": "2026-10-13T19:12:00.738Z",
+  "scope": "Hand-authored English technical excerpts; controlled retrieval fixtures, not real video transcript corpus",
+  "baseline": "Actual preserved v1 hashed TF + bigram embedding and cosine similarity; document embeddings precomputed",
+  "documentCount": 20,
+  "queryCount": 32,
+  "overall": {
+    "bm25": {
+      "top1Accuracy": 0.84375,
+      "recallAt3": 0.84375,
+      "meanReciprocalRank": 0.8515625,
+      "meanQueryLatencyMs": 0.24994374999999946
+    },
+    "v1": {
+      "top1Accuracy": 0.8125,
+      "recallAt3": 0.875,
+      "meanReciprocalRank": 0.8604989035087719,
+      "meanQueryLatencyMs": 0.14574375000000006
+    }
+  },
+  "smoke": {
+    "bm25": {
+      "top1Accuracy": 1,
+      "recallAt3": 1,
+      "meanReciprocalRank": 1,
+      "meanQueryLatencyMs": 0.2734958333333329
+    },
+    "v1": {
+      "top1Accuracy": 0.9583333333333334,
+      "recallAt3": 1,
+      "meanReciprocalRank": 0.9791666666666666,
+      "meanQueryLatencyMs": 0.1540541666666666
+    }
+  },
+  "stress": {
+    "bm25": {
+      "top1Accuracy": 0.375,
+      "recallAt3": 0.375,
+      "meanReciprocalRank": 0.40625,
+      "meanQueryLatencyMs": 0.17928749999999916
+    },
+    "v1": {
+      "top1Accuracy": 0.375,
+      "recallAt3": 0.5,
+      "meanReciprocalRank": 0.5044956140350877,
+      "meanQueryLatencyMs": 0.12081250000000043
+    }
+  },
+  "paraphrases": {
+    "bm25": {
+      "top1Accuracy": 1,
+      "recallAt3": 1,
+      "meanReciprocalRank": 1,
+      "meanQueryLatencyMs": 0.14525000000000077
+    },
+    "v1": {
+      "top1Accuracy": 0.75,
+      "recallAt3": 1,
+      "meanReciprocalRank": 0.875,
+      "meanQueryLatencyMs": 0.0643749999999983
+    }
+  },
+  "rows": [
+    {
+      "id": "q01",
+      "question": "How does useState remember a value?",
+      "relevant": [
+        "react-state"
+      ],
+      "bm25": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "react-state",
+          "typescript"
+        ],
+        "latencyMs": 1.0899999999999963
+      },
+      "v1": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "react-state",
+          "react-effects",
+          "typescript",
+          "sql-join",
+          "python-data"
+        ],
+        "latencyMs": 1.4355000000000047
+      }
+    },
+    {
+      "id": "q02",
+      "question": "How should useEffect unsubscribe from an event listener?",
+      "relevant": [
+        "react-effects"
+      ],
+      "bm25": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "react-effects",
+          "react-state"
+        ],
+        "latencyMs": 0.2817000000000007
+      },
+      "v1": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "react-effects",
+          "testing",
+          "node-version",
+          "react-state",
+          "react-hooks"
+        ],
+        "latencyMs": 0.11989999999999412
+      }
+    },
+    {
+      "id": "q03",
+      "question": "Can hooks be called inside conditional branches?",
+      "relevant": [
+        "react-hooks"
+      ],
+      "bm25": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "react-hooks",
+          "python-data"
+        ],
+        "latencyMs": 0.18439999999999657
+      },
+      "v1": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "react-hooks",
+          "react-state",
+          "security",
+          "react-effects",
+          "npm-install"
+        ],
+        "latencyMs": 0.10390000000000299
+      }
+    },
+    {
+      "id": "q04",
+      "question": "Which npm command installs dependencies?",
+      "relevant": [
+        "npm-install"
+      ],
+      "bm25": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "npm-install"
+        ],
+        "latencyMs": 0.6687000000000012
+      },
+      "v1": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "npm-install",
+          "git-remote",
+          "python-env",
+          "node-version",
+          "web-worker"
+        ],
+        "latencyMs": 0.11549999999999727
+      }
+    },
+    {
+      "id": "q05",
+      "question": "Which Node.js version does this tutorial require?",
+      "relevant": [
+        "node-version"
+      ],
+      "bm25": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "node-version",
+          "indexeddb"
+        ],
+        "latencyMs": 0.16369999999999862
+      },
+      "v1": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "node-version",
+          "indexeddb",
+          "react-state",
+          "react-effects",
+          "security"
+        ],
+        "latencyMs": 0.09479999999999933
+      }
+    },
+    {
+      "id": "q06",
+      "question": "What is the difference between a Git tag and a branch?",
+      "relevant": [
+        "git-history"
+      ],
+      "bm25": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "git-history",
+          "git-remote",
+          "typescript",
+          "react-state"
+        ],
+        "latencyMs": 0.7992999999999952
+      },
+      "v1": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "git-history",
+          "git-remote",
+          "typescript",
+          "react-state",
+          "sql-index"
+        ],
+        "latencyMs": 0.1875
+      }
+    },
+    {
+      "id": "q07",
+      "question": "How do I send commits to the remote repository?",
+      "relevant": [
+        "git-remote"
+      ],
+      "bm25": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "git-remote",
+          "git-history"
+        ],
+        "latencyMs": 0.49550000000000693
+      },
+      "v1": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "git-remote",
+          "git-history",
+          "indexeddb",
+          "npm-install",
+          "typescript"
+        ],
+        "latencyMs": 0.15529999999999688
+      }
+    },
+    {
+      "id": "q08",
+      "question": "How do I create a Python virtual environment?",
+      "relevant": [
+        "python-env"
+      ],
+      "bm25": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "python-env",
+          "indexeddb",
+          "docker-compose",
+          "python-data"
+        ],
+        "latencyMs": 0.14569999999999794
+      },
+      "v1": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "python-env",
+          "typescript",
+          "indexeddb",
+          "docker-compose",
+          "python-data"
+        ],
+        "latencyMs": 0.09559999999999746
+      }
+    },
+    {
+      "id": "q09",
+      "question": "How does pandas read_csv load tabular data?",
+      "relevant": [
+        "python-data"
+      ],
+      "bm25": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "python-data",
+          "docker-compose"
+        ],
+        "latencyMs": 0.13870000000000005
+      },
+      "v1": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "python-data",
+          "node-version",
+          "docker-compose",
+          "react-state",
+          "react-effects"
+        ],
+        "latencyMs": 0.09479999999999933
+      }
+    },
+    {
+      "id": "q10",
+      "question": "Why does a SQL index cost extra storage and writes?",
+      "relevant": [
+        "sql-index"
+      ],
+      "bm25": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "sql-index",
+          "indexeddb"
+        ],
+        "latencyMs": 0.18840000000000146
+      },
+      "v1": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "sql-index",
+          "indexeddb",
+          "docker-build",
+          "react-state",
+          "react-effects"
+        ],
+        "latencyMs": 0.10130000000000194
+      }
+    },
+    {
+      "id": "q11",
+      "question": "Which JOIN preserves unmatched rows?",
+      "relevant": [
+        "sql-join"
+      ],
+      "bm25": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "sql-join"
+        ],
+        "latencyMs": 0.10819999999999652
+      },
+      "v1": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "sql-join",
+          "react-state",
+          "git-history",
+          "async-errors",
+          "react-effects"
+        ],
+        "latencyMs": 0.11820000000000164
+      }
+    },
+    {
+      "id": "q12",
+      "question": "How does docker build create an image?",
+      "relevant": [
+        "docker-build"
+      ],
+      "bm25": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "docker-build",
+          "npm-install",
+          "indexeddb",
+          "docker-compose"
+        ],
+        "latencyMs": 0.11440000000000339
+      },
+      "v1": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "docker-build",
+          "npm-install",
+          "python-env",
+          "indexeddb",
+          "docker-compose"
+        ],
+        "latencyMs": 0.11030000000000229
+      }
+    },
+    {
+      "id": "q13",
+      "question": "Which compose command starts services?",
+      "relevant": [
+        "docker-compose"
+      ],
+      "bm25": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "docker-compose",
+          "docker-build"
+        ],
+        "latencyMs": 0.1385000000000005
+      },
+      "v1": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "docker-compose",
+          "docker-build",
+          "testing",
+          "web-worker",
+          "react-state"
+        ],
+        "latencyMs": 0.11110000000000042
+      }
+    },
+    {
+      "id": "q14",
+      "question": "How does TypeScript narrow discriminated unions?",
+      "relevant": [
+        "typescript"
+      ],
+      "bm25": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "typescript"
+        ],
+        "latencyMs": 0.11050000000000182
+      },
+      "v1": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "typescript",
+          "python-data",
+          "react-state",
+          "react-effects",
+          "react-hooks"
+        ],
+        "latencyMs": 0.10609999999999786
+      }
+    },
+    {
+      "id": "q15",
+      "question": "Which promise method records both success and failure?",
+      "relevant": [
+        "async-errors"
+      ],
+      "bm25": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "async-errors",
+          "npm-install",
+          "testing"
+        ],
+        "latencyMs": 0.6171999999999969
+      },
+      "v1": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "async-errors",
+          "testing",
+          "indexeddb",
+          "http-retry",
+          "npm-install"
+        ],
+        "latencyMs": 0.09029999999999916
+      }
+    },
+    {
+      "id": "q16",
+      "question": "How should HTTP 429 and Retry-After be handled?",
+      "relevant": [
+        "http-retry"
+      ],
+      "bm25": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "http-retry",
+          "react-state",
+          "react-hooks",
+          "python-data"
+        ],
+        "latencyMs": 0.16209999999999525
+      },
+      "v1": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "http-retry",
+          "python-data",
+          "react-state",
+          "react-effects",
+          "react-hooks"
+        ],
+        "latencyMs": 0.07850000000000534
+      }
+    },
+    {
+      "id": "q17",
+      "question": "Why use IndexedDB indexes for key lookup?",
+      "relevant": [
+        "indexeddb"
+      ],
+      "bm25": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "indexeddb",
+          "sql-index",
+          "typescript",
+          "async-errors"
+        ],
+        "latencyMs": 0.14649999999999608
+      },
+      "v1": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "indexeddb",
+          "sql-index",
+          "security",
+          "typescript",
+          "async-errors"
+        ],
+        "latencyMs": 0.07800000000000296
+      }
+    },
+    {
+      "id": "q18",
+      "question": "How should extension API keys and untrusted HTML be protected?",
+      "relevant": [
+        "security"
+      ],
+      "bm25": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "security",
+          "react-state",
+          "react-hooks",
+          "python-data"
+        ],
+        "latencyMs": 0.1291000000000011
+      },
+      "v1": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "security",
+          "react-effects",
+          "indexeddb",
+          "git-remote",
+          "react-state"
+        ],
+        "latencyMs": 0.09700000000000131
+      }
+    },
+    {
+      "id": "q19",
+      "question": "How do Web Workers and bounded pending queues help CPU work?",
+      "relevant": [
+        "web-worker"
+      ],
+      "bm25": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "web-worker",
+          "sql-index"
+        ],
+        "latencyMs": 0.19550000000000267
+      },
+      "v1": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "web-worker",
+          "typescript",
+          "python-env",
+          "sql-index",
+          "docker-compose"
+        ],
+        "latencyMs": 0.07430000000000092
+      }
+    },
+    {
+      "id": "q20",
+      "question": "What is the limitation of a mock in an integration test?",
+      "relevant": [
+        "testing"
+      ],
+      "bm25": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "testing"
+        ],
+        "latencyMs": 0.10479999999999734
+      },
+      "v1": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "testing",
+          "git-history",
+          "docker-compose",
+          "security",
+          "react-state"
+        ],
+        "latencyMs": 0.07189999999999941
+      }
+    },
+    {
+      "id": "q21",
+      "question": "How do I alter a retained component value?",
+      "relevant": [
+        "react-state"
+      ],
+      "group": "paraphrase",
+      "bm25": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "react-state",
+          "typescript"
+        ],
+        "latencyMs": 0.2610000000000028
+      },
+      "v1": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "react-state",
+          "react-effects",
+          "typescript",
+          "testing",
+          "sql-join"
+        ],
+        "latencyMs": 0.06629999999999825
+      }
+    },
+    {
+      "id": "q22",
+      "question": "Which method waits until every asynchronous operation has an outcome?",
+      "relevant": [
+        "async-errors"
+      ],
+      "group": "paraphrase",
+      "bm25": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "async-errors",
+          "indexeddb",
+          "typescript"
+        ],
+        "latencyMs": 0.12689999999999912
+      },
+      "v1": {
+        "top1": false,
+        "recallAt3": true,
+        "reciprocalRank": 0.5,
+        "rank": 2,
+        "ranking": [
+          "indexeddb",
+          "async-errors",
+          "typescript",
+          "http-retry",
+          "react-state"
+        ],
+        "latencyMs": 0.06550000000000011
+      }
+    },
+    {
+      "id": "q23",
+      "question": "How can a query plan guide database lookup optimization?",
+      "relevant": [
+        "sql-index"
+      ],
+      "group": "paraphrase",
+      "bm25": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "sql-index",
+          "indexeddb"
+        ],
+        "latencyMs": 0.10150000000000148
+      },
+      "v1": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "sql-index",
+          "git-remote",
+          "indexeddb",
+          "git-history",
+          "http-retry"
+        ],
+        "latencyMs": 0.06269999999999953
+      }
+    },
+    {
+      "id": "q24",
+      "question": "Which environment keeps interpreter packages isolated?",
+      "relevant": [
+        "python-env"
+      ],
+      "group": "paraphrase",
+      "bm25": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "python-env",
+          "sql-join",
+          "docker-compose"
+        ],
+        "latencyMs": 0.09159999999999968
+      },
+      "v1": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "python-env",
+          "typescript",
+          "sql-join",
+          "docker-compose",
+          "npm-install"
+        ],
+        "latencyMs": 0.06299999999999528
+      }
+    },
+    {
+      "id": "s01",
+      "question": "Why does my counter survive the next repaint?",
+      "relevant": [
+        "react-state"
+      ],
+      "group": "stress",
+      "bm25": {
+        "top1": false,
+        "recallAt3": false,
+        "reciprocalRank": 0,
+        "rank": 0,
+        "ranking": [],
+        "latencyMs": 0.11869999999999692
+      },
+      "v1": {
+        "top1": false,
+        "recallAt3": false,
+        "reciprocalRank": 0.2,
+        "rank": 5,
+        "ranking": [
+          "sql-join",
+          "typescript",
+          "sql-index",
+          "web-worker",
+          "react-state"
+        ],
+        "latencyMs": 0.06280000000000285
+      }
+    },
+    {
+      "id": "s02",
+      "question": "How do I stop leaked subscriptions when the view disappears?",
+      "relevant": [
+        "react-effects"
+      ],
+      "group": "stress",
+      "bm25": {
+        "top1": false,
+        "recallAt3": false,
+        "reciprocalRank": 0,
+        "rank": 0,
+        "ranking": [],
+        "latencyMs": 0.20759999999999934
+      },
+      "v1": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "react-effects",
+          "security",
+          "npm-install",
+          "react-state",
+          "react-hooks"
+        ],
+        "latencyMs": 0.3049999999999997
+      }
+    },
+    {
+      "id": "s03",
+      "question": "Can I invoke these helpers only when a boolean is true?",
+      "relevant": [
+        "react-hooks"
+      ],
+      "group": "stress",
+      "bm25": {
+        "top1": false,
+        "recallAt3": false,
+        "reciprocalRank": 0,
+        "rank": 0,
+        "ranking": [],
+        "latencyMs": 0.15229999999999677
+      },
+      "v1": {
+        "top1": false,
+        "recallAt3": false,
+        "reciprocalRank": 0.2,
+        "rank": 5,
+        "ranking": [
+          "testing",
+          "docker-compose",
+          "react-state",
+          "react-effects",
+          "react-hooks"
+        ],
+        "latencyMs": 0.10499999999999687
+      }
+    },
+    {
+      "id": "s04",
+      "question": "How do I prevent one interpreter project from polluting another?",
+      "relevant": [
+        "python-env"
+      ],
+      "group": "stress",
+      "bm25": {
+        "top1": false,
+        "recallAt3": false,
+        "reciprocalRank": 0.25,
+        "rank": 4,
+        "ranking": [
+          "node-version",
+          "async-errors",
+          "npm-install",
+          "python-env"
+        ],
+        "latencyMs": 0.4233000000000047
+      },
+      "v1": {
+        "top1": false,
+        "recallAt3": false,
+        "reciprocalRank": 0.25,
+        "rank": 4,
+        "ranking": [
+          "npm-install",
+          "node-version",
+          "sql-join",
+          "python-env",
+          "async-errors"
+        ],
+        "latencyMs": 0.12940000000000396
+      }
+    },
+    {
+      "id": "s05",
+      "question": "Which approach preserves entries lacking a corresponding partner?",
+      "relevant": [
+        "sql-join"
+      ],
+      "group": "stress",
+      "bm25": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "sql-join"
+        ],
+        "latencyMs": 0.12889999999999446
+      },
+      "v1": {
+        "top1": false,
+        "recallAt3": true,
+        "reciprocalRank": 0.3333333333333333,
+        "rank": 3,
+        "ranking": [
+          "react-state",
+          "docker-build",
+          "sql-join",
+          "web-worker",
+          "docker-compose"
+        ],
+        "latencyMs": 0.15200000000000102
+      }
+    },
+    {
+      "id": "s06",
+      "question": "What should happen when the provider asks me to slow down?",
+      "relevant": [
+        "http-retry"
+      ],
+      "group": "stress",
+      "bm25": {
+        "top1": false,
+        "recallAt3": false,
+        "reciprocalRank": 0,
+        "rank": 0,
+        "ranking": [
+          "react-state"
+        ],
+        "latencyMs": 0.15290000000000248
+      },
+      "v1": {
+        "top1": false,
+        "recallAt3": false,
+        "reciprocalRank": 0.05263157894736842,
+        "rank": 19,
+        "ranking": [
+          "indexeddb",
+          "security",
+          "testing",
+          "react-state",
+          "react-effects"
+        ],
+        "latencyMs": 0.07639999999999958
+      }
+    },
+    {
+      "id": "s07",
+      "question": "Where should expensive recognition work run to keep playback responsive?",
+      "relevant": [
+        "web-worker"
+      ],
+      "group": "stress",
+      "bm25": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "web-worker",
+          "react-state",
+          "npm-install",
+          "sql-index",
+          "docker-build"
+        ],
+        "latencyMs": 0.13349999999999795
+      },
+      "v1": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "web-worker",
+          "docker-build",
+          "npm-install",
+          "sql-index",
+          "sql-join"
+        ],
+        "latencyMs": 0.06900000000000261
+      }
+    },
+    {
+      "id": "s08",
+      "question": "Why does replacing a provider with a fake not establish answer quality?",
+      "relevant": [
+        "testing"
+      ],
+      "group": "stress",
+      "bm25": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "testing",
+          "security",
+          "react-hooks",
+          "http-retry",
+          "git-remote"
+        ],
+        "latencyMs": 0.11710000000000065
+      },
+      "v1": {
+        "top1": true,
+        "recallAt3": true,
+        "reciprocalRank": 1,
+        "rank": 1,
+        "ranking": [
+          "testing",
+          "git-history",
+          "indexeddb",
+          "react-state",
+          "react-effects"
+        ],
+        "latencyMs": 0.06689999999999685
+      }
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "scope": "Additional hand-authored challenge queries to expose lexical retrieval limits; no algorithm changes based on these scores",
+  "queries": [
+    {
+      "id": "s01",
+      "question": "Why does my counter survive the next repaint?",
+      "relevant": ["react-state"]
+    },
+    {
+      "id": "s02",
+      "question": "How do I stop leaked subscriptions when the view disappears?",
+      "relevant": ["react-effects"]
+    },
+    {
+      "id": "s03",
+      "question": "Can I invoke these helpers only when a boolean is true?",
+      "relevant": ["react-hooks"]
+    },
+    {
+      "id": "s04",
+      "question": "How do I prevent one interpreter project from polluting another?",
+      "relevant": ["python-env"]
+    },
+    {
+      "id": "s05",
+      "question": "Which approach preserves entries lacking a corresponding partner?",
+      "relevant": ["sql-join"]
+    },
+    {
+      "id": "s06",
+      "question": "What should happen when the provider asks me to slow down?",
+      "relevant": ["http-retry"]
+    },
+    {
+      "id": "s07",
+      "question": "Where should expensive recognition work run to keep playback responsive?",
+      "relevant": ["web-worker"]
+    },
+    {
+      "id": "s08",
+      "question": "Why does replacing a provider with a fake not establish answer quality?",
+      "relevant": ["testing"]
+    }
+  ]
+}

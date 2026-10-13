@@ -1,0 +1,116 @@
+{
+  "date": "2026-10-13T19:19:11.298Z",
+  "scope": "Controlled hand-authored English tutorial evidence for real provider pilot; not a live-video or competitor benchmark",
+  "models": {
+    "generation": "llama-3.3-70b-versatile",
+    "verification": "llama-3.1-8b-instant"
+  },
+  "requestBudget": 18,
+  "requestCount": 8,
+  "requests": [
+    {
+      "model": "llama-3.3-70b-versatile",
+      "status": 404,
+      "latencyMs": 405.4167,
+      "usage": null
+    },
+    {
+      "model": "llama-3.3-70b-versatile",
+      "status": 404,
+      "latencyMs": 142.84480000000002,
+      "usage": null
+    },
+    {
+      "model": "llama-3.3-70b-versatile",
+      "status": 404,
+      "latencyMs": 119.11080000000004,
+      "usage": null
+    },
+    {
+      "model": "llama-3.3-70b-versatile",
+      "status": 404,
+      "latencyMs": 118.94290000000001,
+      "usage": null
+    },
+    {
+      "model": "llama-3.3-70b-versatile",
+      "status": 404,
+      "latencyMs": 111.47910000000002,
+      "usage": null
+    },
+    {
+      "model": "llama-3.3-70b-versatile",
+      "status": 404,
+      "latencyMs": 102.13280000000009,
+      "usage": null
+    },
+    {
+      "model": "llama-3.1-8b-instant",
+      "status": 404,
+      "latencyMs": 109.73029999999994,
+      "usage": null
+    },
+    {
+      "model": "llama-3.1-8b-instant",
+      "status": 404,
+      "latencyMs": 118.73609999999985,
+      "usage": null
+    }
+  ],
+  "results": [
+    {
+      "id": "actions-grounded",
+      "status": "failed",
+      "error": "Groq request failed (404). Check the model in Settings and retry.",
+      "latencyMs": 406.2641
+    },
+    {
+      "id": "unknown-runtime",
+      "status": "failed",
+      "error": "Groq request failed (404). Check the model in Settings and retry.",
+      "latencyMs": 143.13200000000006
+    },
+    {
+      "id": "source-disagreement",
+      "status": "failed",
+      "error": "Groq request failed (404). Check the model in Settings and retry.",
+      "latencyMs": 119.49450000000002
+    },
+    {
+      "id": "prompt-injection",
+      "status": "failed",
+      "error": "Groq request failed (404). Check the model in Settings and retry.",
+      "latencyMs": 119.19200000000001
+    },
+    {
+      "id": "lab-version-mismatch",
+      "status": "failed",
+      "error": "Groq request failed (404). Check the model in Settings and retry.",
+      "latencyMs": 112.58130000000006
+    },
+    {
+      "id": "preflight-no-invention",
+      "status": "failed",
+      "error": "Groq request failed (404). Check the model in Settings and retry.",
+      "latencyMs": 104.09929999999997
+    },
+    {
+      "id": "unsupported-command",
+      "status": "failed",
+      "error": "Groq request failed (404). Check the model in Settings and retry.",
+      "latencyMs": 110.60030000000006
+    },
+    {
+      "id": "contradicted-version",
+      "status": "failed",
+      "error": "Groq request failed (404). Check the model in Settings and retry.",
+      "latencyMs": 119.16799999999989
+    }
+  ],
+  "limitations": [
+    "Synthetic source excerpts, not real-video ingestion",
+    "Single stochastic trial",
+    "Checks are string/reference/label checks; independent human factual review remains pending",
+    "No competitor outputs evaluated"
+  ]
+}

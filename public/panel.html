@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>YTMind · Video workspace</title>
+    <link rel="stylesheet" href="panel.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#notes" aria-label="YTMind home"
+        ><span class="brand-icon">✳</span>ytmind<span class="version"
+          >/ 03</span
+        ></a
+      ><button class="icon-button" id="settings-open" aria-label="Settings">
+        ⚙
+      </button>
+    </header>
+    <div id="preview-label" hidden>
+      DESIGN PREVIEW · sample data · no API calls
+    </div>
+    <main>
+      <section class="intro">
+        <div class="eyebrow">
+          <span class="dot"></span> YOUR LEARNING WORKSPACE
+        </div>
+        <h1>Watch. Understand.<br /><span>Make it yours.</span></h1>
+        <p>Good ideas deserve more than another open tab.</p>
+      </section>
+      <section class="video-card" aria-label="Current video">
+        <div class="video-top">
+          <span class="video-symbol">▶</span>
+          <div>
+            <div class="eyebrow">NOW LEARNING</div>
+            <h2 id="video-title">Open a YouTube video</h2>
+          </div>
+          <button
+            id="pin"
+            class="icon-button"
+            aria-label="Pin video to library"
+            title="Keep this video's evidence beyond 24 hours"
+          >
+            ◇
+          </button>
+        </div>
+        <div class="video-meta">
+          <span id="source-status">Waiting for a video</span
+          ><span id="retention">24h session</span>
+        </div>
+      </section>
+      <nav class="tabs" aria-label="Workspace">
+        <button data-tab="notes" class="active">Notes</button
+        ><button data-tab="chat">Ask</button
+        ><button data-tab="actions">Actions</button
+        ><button data-tab="graph">Graph</button
+        ><button data-tab="vera">Frames</button
+        ><button data-tab="library">Library</button
+        ><button data-tab="lab">Lab</button>
+      </nav>
+      <div id="notice" role="status" hidden></div>
+      <section id="workspace" aria-live="polite"></section>
+      <footer>
+        <span class="dot"></span> Stored on your device
+        <span class="footer-right">Built for curious minds ↗</span>
+      </footer>
+    </main>
+    <dialog id="settings-dialog">
+      <div class="dialog-header">
+        <div>
+          <div class="eyebrow">MAKE YOURSELF AT HOME</div>
+          <h2>Your workspace settings</h2>
+        </div>
+        <button
+          id="settings-close"
+          class="icon-button"
+          aria-label="Close settings"
+        >
+          ×
+        </button>
+      </div>
+      <div class="onboarding">
+        <b>01 Connect</b><span>02 Open a video</span
+        ><span>03 Create & save</span>
+      </div>
+      <p class="muted">
+        Captions and OCR stay local. When you generate, selected source text is
+        sent to Groq using your key. Frames are never uploaded.
+      </p>
+      <form id="settings-form">
+        <label
+          >Groq API key<input
+            id="api-key"
+            type="password"
+            autocomplete="off"
+            placeholder="gsk_…"
+          /><small
+            >Saved locally in this browser.
+            <a
+              href="https://console.groq.com/keys"
+              target="_blank"
+              rel="noreferrer"
+              >Get a key ↗</a
+            ></small
+          ></label
+        >
+        <button type="button" class="secondary" id="check-connection">
+          Check connection & available models
+        </button>
+        <p id="connection-status" class="muted" role="status"></p>
+        <datalist id="available-models"></datalist>
+        <label
+          >Generation model<input id="model" list="available-models" required
+        /></label>
+        <label
+          >SAGE comparison model<input
+            id="verifier-model"
+            list="available-models"
+            required
+        /></label>
+        <label
+          >Capture interval (seconds)<input
+            id="interval"
+            type="number"
+            min="3"
+            max="60"
+            required
+        /></label>
+        <label
+          >Local processing profile<select id="profile">
+            <option value="performance">
+              Performance · 1600px, two OCR workers
+            </option>
+            <option value="balanced">
+              Balanced · 960px, one OCR worker
+            </option></select
+          ><small
+            >Performance is the default for a capable machine. Neither profile
+            uploads images.</small
+          ></label
+        >
+        <label class="toggle"
+          ><input id="deep" type="checkbox" /><span
+            >Process every section for notes & actions<small
+              >Deep mode saves progress section by section. More sections use
+              more API requests. Disable for a sampled overview.</small
+            ></span
+          ></label
+        >
+        <label class="toggle"
+          ><input id="sage" type="checkbox" /><span
+            >Check source support with SAGE<small
+              >Uses up to 3 API requests per section or answer.</small
+            ></span
+          ></label
+        >
+        <label class="toggle"
+          ><input id="auto-notes" type="checkbox" /><span
+            >Generate a quick overview when the video ends<small
+              >Sends sampled source text to Groq automatically.</small
+            ></span
+          ></label
+        >
+        <button class="primary" type="submit">
+          Save settings <span>↗</span>
+        </button>
+      </form>
+      <div class="danger-zone">
+        <p>
+          Unpinned video evidence expires after 24 hours. Pinned videos and
+          saved graph evidence remain until cleared.
+        </p>
+        <button id="clear-data" class="danger">Clear all learning data</button
+        ><button id="remove-key" class="text-button">Remove API key</button>
+      </div>
+    </dialog>
+    <script type="module" src="panel.js"></script>
+  </body>
+</html>

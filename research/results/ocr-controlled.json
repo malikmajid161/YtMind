@@ -1,0 +1,106 @@
+{
+  "date": "2026-10-13T19:08:45.177Z",
+  "scope": "Controlled synthetic English text images, not live YouTube or competitor evaluation",
+  "browser": "154.0.8037.98",
+  "hardware": {
+    "cpu": "Intel(R) Core(TM) Ultra 7 256V",
+    "logicalCpus": 8,
+    "ramGiB": 16
+  },
+  "sampleSize": 8,
+  "exactMatchRate": 0.875,
+  "meanCharacterErrorRate": 0.003289473684210526,
+  "externalRequests": [],
+  "results": [
+    {
+      "id": "slide-48",
+      "text": "React state remembers a value",
+      "font": 48,
+      "kind": "prose",
+      "actual": "React state remembers a value",
+      "confidence": 95,
+      "latencyMs": 557.0999999940395,
+      "exactMatch": true,
+      "characterErrorRate": 0
+    },
+    {
+      "id": "slide-32",
+      "text": "Hooks must stay at the top level",
+      "font": 32,
+      "kind": "prose",
+      "actual": "Hooks must stay at the top level",
+      "confidence": 96,
+      "latencyMs": 126.5,
+      "exactMatch": true,
+      "characterErrorRate": 0
+    },
+    {
+      "id": "command-44",
+      "text": "npm install react",
+      "font": 44,
+      "kind": "command",
+      "actual": "npm install react",
+      "confidence": 94,
+      "latencyMs": 56.79999999701977,
+      "exactMatch": true,
+      "characterErrorRate": 0
+    },
+    {
+      "id": "command-28",
+      "text": "npm run build",
+      "font": 28,
+      "kind": "command",
+      "actual": "npm run build",
+      "confidence": 93,
+      "latencyMs": 41.5,
+      "exactMatch": true,
+      "characterErrorRate": 0
+    },
+    {
+      "id": "code-40",
+      "text": "const count = 123;",
+      "font": 40,
+      "kind": "code",
+      "actual": "const count = 123;",
+      "confidence": 95,
+      "latencyMs": 52.30000001192093,
+      "exactMatch": true,
+      "characterErrorRate": 0
+    },
+    {
+      "id": "code-26",
+      "text": "const [count, setCount] = useState(0);",
+      "font": 26,
+      "kind": "code",
+      "actual": "const [count, setCount] = useState(®);",
+      "confidence": 81,
+      "latencyMs": 79.70000000298023,
+      "exactMatch": false,
+      "characterErrorRate": 0.02631578947368421
+    },
+    {
+      "id": "code-20",
+      "text": "export function App() { return null; }",
+      "font": 20,
+      "kind": "code",
+      "actual": "export function App() { return null; }",
+      "confidence": 92,
+      "latencyMs": 69.30000001192093,
+      "exactMatch": true,
+      "characterErrorRate": 0
+    },
+    {
+      "id": "low-contrast",
+      "text": "Clean up subscriptions",
+      "font": 36,
+      "kind": "prose",
+      "color": "#777777",
+      "background": "#bbbbbb",
+      "actual": "Clean up subscriptions",
+      "confidence": 95,
+      "latencyMs": 46.900000005960464,
+      "exactMatch": true,
+      "characterErrorRate": 0
+    }
+  ]
+}

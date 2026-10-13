@@ -1,0 +1,211 @@
+{
+  "scope": "Hand-authored English technical excerpts; controlled retrieval fixtures, not real video transcript corpus",
+  "documents": [
+    {
+      "id": "react-state",
+      "text": "React useState retains a component value between renders. Call the setter to request a render. State updates should preserve immutability."
+    },
+    {
+      "id": "react-effects",
+      "text": "React useEffect synchronizes components with external systems. Return cleanup to unsubscribe from an event listener. List reactive values in the dependency array."
+    },
+    {
+      "id": "react-hooks",
+      "text": "React hooks must be called at the top level, not inside loops or conditional branches. Custom hooks share reusable stateful logic."
+    },
+    {
+      "id": "npm-install",
+      "text": "Install dependencies by running npm install in the project folder. package-lock.json records the resolved dependency tree. Run npm run build to build the project."
+    },
+    {
+      "id": "node-version",
+      "text": "This tutorial requires Node.js version 22. Check the installed version with node --version. A different project may require another runtime version."
+    },
+    {
+      "id": "git-history",
+      "text": "git commit creates a snapshot. git log displays commit history. A Git tag names a commit, while a branch reference moves as commits are added."
+    },
+    {
+      "id": "git-remote",
+      "text": "git push sends local commits to a remote repository. git pull integrates remote updates. Do not force push a shared branch without coordinating."
+    },
+    {
+      "id": "python-env",
+      "text": "python -m venv .venv creates an isolated Python virtual environment. Activate the environment before installing project packages with pip."
+    },
+    {
+      "id": "python-data",
+      "text": "Python pandas DataFrame stores tabular data. read_csv loads a CSV file. Missing values can be examined with isna before cleaning the table."
+    },
+    {
+      "id": "sql-index",
+      "text": "A SQL index can accelerate selective lookup, but it costs storage and write work. Use EXPLAIN to inspect a query plan before adding an index."
+    },
+    {
+      "id": "sql-join",
+      "text": "An INNER JOIN keeps matching rows. A LEFT JOIN preserves rows from the left table and fills unmatched right-side values with NULL."
+    },
+    {
+      "id": "docker-build",
+      "text": "docker build -t demo . builds an image using the Dockerfile in the current directory. docker run starts a container from an image."
+    },
+    {
+      "id": "docker-compose",
+      "text": "docker compose up starts the services defined in a compose file. Named volumes persist container data. Explicitly configure service environment variables."
+    },
+    {
+      "id": "typescript",
+      "text": "TypeScript discriminated unions use a common literal tag to narrow the type of a value. A switch on the tag helps check every variant."
+    },
+    {
+      "id": "async-errors",
+      "text": "Use try catch around awaited promises to handle asynchronous errors. Promise.all rejects when one input rejects. Promise.allSettled records both success and failure outcomes."
+    },
+    {
+      "id": "http-retry",
+      "text": "HTTP status 429 signals rate limiting. Respect Retry-After when provided. Retrying authentication failures without changing credentials does not solve them."
+    },
+    {
+      "id": "indexeddb",
+      "text": "IndexedDB readwrite transactions commit together. Indexes avoid scanning every record for a key lookup. A database version upgrade can create a new index."
+    },
+    {
+      "id": "security",
+      "text": "Sanitize untrusted HTML before rendering. Do not expose API keys to webpage scripts. Validate extension message origins and response schemas."
+    },
+    {
+      "id": "web-worker",
+      "text": "Web Workers run CPU work away from the page thread. Transfer large ArrayBuffers when appropriate. Bound pending work to avoid an unbounded queue."
+    },
+    {
+      "id": "testing",
+      "text": "A regression test reproduces an important failure. An integration test checks interacting components. A mock isolates a dependency but does not measure that dependency's real quality."
+    }
+  ],
+  "queries": [
+    {
+      "id": "q01",
+      "question": "How does useState remember a value?",
+      "relevant": ["react-state"]
+    },
+    {
+      "id": "q02",
+      "question": "How should useEffect unsubscribe from an event listener?",
+      "relevant": ["react-effects"]
+    },
+    {
+      "id": "q03",
+      "question": "Can hooks be called inside conditional branches?",
+      "relevant": ["react-hooks"]
+    },
+    {
+      "id": "q04",
+      "question": "Which npm command installs dependencies?",
+      "relevant": ["npm-install"]
+    },
+    {
+      "id": "q05",
+      "question": "Which Node.js version does this tutorial require?",
+      "relevant": ["node-version"]
+    },
+    {
+      "id": "q06",
+      "question": "What is the difference between a Git tag and a branch?",
+      "relevant": ["git-history"]
+    },
+    {
+      "id": "q07",
+      "question": "How do I send commits to the remote repository?",
+      "relevant": ["git-remote"]
+    },
+    {
+      "id": "q08",
+      "question": "How do I create a Python virtual environment?",
+      "relevant": ["python-env"]
+    },
+    {
+      "id": "q09",
+      "question": "How does pandas read_csv load tabular data?",
+      "relevant": ["python-data"]
+    },
+    {
+      "id": "q10",
+      "question": "Why does a SQL index cost extra storage and writes?",
+      "relevant": ["sql-index"]
+    },
+    {
+      "id": "q11",
+      "question": "Which JOIN preserves unmatched rows?",
+      "relevant": ["sql-join"]
+    },
+    {
+      "id": "q12",
+      "question": "How does docker build create an image?",
+      "relevant": ["docker-build"]
+    },
+    {
+      "id": "q13",
+      "question": "Which compose command starts services?",
+      "relevant": ["docker-compose"]
+    },
+    {
+      "id": "q14",
+      "question": "How does TypeScript narrow discriminated unions?",
+      "relevant": ["typescript"]
+    },
+    {
+      "id": "q15",
+      "question": "Which promise method records both success and failure?",
+      "relevant": ["async-errors"]
+    },
+    {
+      "id": "q16",
+      "question": "How should HTTP 429 and Retry-After be handled?",
+      "relevant": ["http-retry"]
+    },
+    {
+      "id": "q17",
+      "question": "Why use IndexedDB indexes for key lookup?",
+      "relevant": ["indexeddb"]
+    },
+    {
+      "id": "q18",
+      "question": "How should extension API keys and untrusted HTML be protected?",
+      "relevant": ["security"]
+    },
+    {
+      "id": "q19",
+      "question": "How do Web Workers and bounded pending queues help CPU work?",
+      "relevant": ["web-worker"]
+    },
+    {
+      "id": "q20",
+      "question": "What is the limitation of a mock in an integration test?",
+      "relevant": ["testing"]
+    },
+    {
+      "id": "q21",
+      "question": "How do I alter a retained component value?",
+      "relevant": ["react-state"],
+      "group": "paraphrase"
+    },
+    {
+      "id": "q22",
+      "question": "Which method waits until every asynchronous operation has an outcome?",
+      "relevant": ["async-errors"],
+      "group": "paraphrase"
+    },
+    {
+      "id": "q23",
+      "question": "How can a query plan guide database lookup optimization?",
+      "relevant": ["sql-index"],
+      "group": "paraphrase"
+    },
+    {
+      "id": "q24",
+      "question": "Which environment keeps interpreter packages isolated?",
+      "relevant": ["python-env"],
+      "group": "paraphrase"
+    }
+  ]
+}
