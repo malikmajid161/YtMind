@@ -594,26 +594,53 @@ export function createService({
         ? Math.max(0, Math.floor(Number(m.batchIndex) || 0))
         : 0;
       const evidence = batches[batchIndex] || [];
-      const result = await generate(config, m.mode, m.query, evidence);
+      const targetId =
+        m.mode === "research"
+          ? (sessions.find((s) => s.id === m.videoId) || sessions[0])?.id
+          : m.videoId;
+      const saveOutput = async (output) => {
+        await mutate(async () => {
+          if (epoch !== (await store.generation()))
+            throw new Error("Data was cleared during generation.");
+          const current = await store.read("sessions", targetId);
+          if (!current) return;
+          current.outputs = [
+            ...(current.outputs || []).filter((o) => o.id !== output.id),
+            output,
+          ].slice(-200);
+          await store.put("sessions", current);
+        });
+      };
+      const result = await generate(
+        config,
+        m.mode,
+        m.query,
+        evidence,
+        undefined,
+        async (draft) => {
+          draft.coverage = { selected: evidence.length, total: all.length };
+          if (deep)
+            Object.assign(draft, {
+              batchIndex,
+              totalBatches: batches.length,
+              jobId,
+            });
+          await saveOutput(draft);
+          await Promise.resolve(
+            emit({ type: "OUTPUT_AVAILABLE", videoId: targetId }),
+          ).catch(() => {});
+        },
+      );
       result.coverage = { selected: evidence.length, total: all.length };
       if (deep) {
         result.batchIndex = batchIndex;
         result.totalBatches = batches.length;
         result.jobId = jobId;
       }
-      await mutate(async () => {
-        if (epoch !== (await store.generation()))
-          throw new Error("Data was cleared during generation.");
-        const targetId =
-          m.mode === "research"
-            ? (sessions.find((s) => s.id === m.videoId) || sessions[0])?.id
-            : m.videoId;
-        const s = await store.read("sessions", targetId);
-        if (s) {
-          s.outputs = [...(s.outputs || []), result].slice(-200);
-          await store.put("sessions", s);
-        }
-      });
+      await saveOutput(result);
+      await Promise.resolve(
+        emit({ type: "OUTPUT_AVAILABLE", videoId: targetId }),
+      ).catch(() => {});
       return result;
     } finally {
       busy.delete(m.videoId);

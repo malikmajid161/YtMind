@@ -150,3 +150,15 @@ Caption checkpoint regression results: 50/50 unit tests, build, browser UI integ
 ## 2026-10-14 — v3.0.11 Padded brain icons
 
 - Replaced cropped 16/48/128px icons with the complete pink brain silhouette on transparent padding. Generated the padded master using imagegen and resized to manifest icon dimensions. Also updated the user's extracted 3.0.9 icons directory. Built 3.0.11 ZIP; no runtime logic change.
+
+## Working-folder delivery preference
+
+- User requests direct updates to the working app/dist folder. Do not create ZIP releases unless explicitly requested. Rebuild dist after source/assets change and tell user to reload the extension already loaded from that folder.
+- Rebuilt dist with 3.0.11 icons; verified all three icon hashes against public source assets.
+
+## 2026-10-14 — v3.0.12 Earlier answers and parallel comparison
+
+- Main answer and independent SAGE answer now start concurrently. The main answer is saved and broadcast immediately when ready, before comparator completion. Panel shows Checking support with unchecked provenance, then final result replaces the same output ID; outside-knowledge processing stays explicitly separate.
+- Native drawer, native panel and local workspace refresh on provisional/final output events. Cleared-data generation epoch guards apply to both early and final saves. Resume ignores unfinished drafts.
+- 69 unit tests pass, including gated delayed-comparison regression demonstrating early draft delivery before verification. Browser integration passes with mocked API. No measured live-provider speed percentage is claimed; network/rate limits, audio transcription, OCR and full-source batching can still take time.
+- Updated working app/dist directly, version 3.0.12; no ZIP created per user preference.

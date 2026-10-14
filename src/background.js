@@ -64,7 +64,7 @@ chrome.runtime.onMessage.addListener((m, sender, respond) => {
   if (
     !m?.type ||
     m.target === "offscreen" ||
-    ["FRAME_AVAILABLE", "NOTICE"].includes(m.type)
+    ["FRAME_AVAILABLE", "OUTPUT_AVAILABLE", "NOTICE"].includes(m.type)
   )
     return;
   if (m.type === "OPEN" && sender.id === chrome.runtime.id && sender.tab) {

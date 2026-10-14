@@ -196,3 +196,44 @@ test("an unrelated missing answer does not acquire a general-knowledge supplemen
   assert.equal(result.generalKnowledge, false);
   assert.ok(!result.answer.includes("ignored"));
 });
+
+test("first answer is published before delayed independent verification completes", async () => {
+  let releaseComparison, publishDraft;
+  const waiting = new Promise((resolve) => {
+    releaseComparison = resolve;
+  });
+  const published = new Promise((resolve) => {
+    publishDraft = resolve;
+  });
+  let count = 0;
+  const request = generate(
+    { sage: true },
+    "chat",
+    "Explain setup",
+    evidence,
+    async () => {
+      count++;
+      if (count === 1) return "Run npm install. [E1]";
+      if (count === 2) {
+        await waiting;
+        return "Use npm install. [E1]";
+      }
+      return {
+        status: "supported",
+        reason: "Source matches",
+        claims: [{ text: "Run npm install", verdict: "supported", refs: [1] }],
+      };
+    },
+    async (draft) => publishDraft(draft),
+  );
+  const draft = await published;
+  assert.equal(count, 2);
+  assert.equal(draft.processing, true);
+  assert.equal(draft.verification.status, "unchecked");
+  assert.match(draft.answer, /npm install/);
+  releaseComparison();
+  const final = await request;
+  assert.equal(final.id, draft.id);
+  assert.equal(final.processing, false);
+  assert.equal(final.verification.status, "supported");
+});
