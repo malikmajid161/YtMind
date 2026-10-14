@@ -176,3 +176,8 @@ Caption checkpoint regression results: 50/50 unit tests, build, browser UI integ
 - Audio-grant errors describe optional audio activation separately from opening the workspace. User authorization is already given; Chrome tabCapture still requires extension invocation for the target tab, verified against official Chrome documentation. Do not promise user authorization alone bypasses that browser rule.
 - Automatic audio fallback is skipped when usable captions already exist, reducing irrelevant audio activation notices. Audio remains available when needed and permitted.
 - 70 unit tests pass; native fixture integration covers replacing a simulated stale toolbar-labelled button and drawer open/close/reopen. Updated app/dist 3.0.14 directly without ZIP.
+
+## 2026-10-14 — v3.0.15 Restore rounded workspace appearance
+
+- Removed large green Close YTMind strip. Drawer uses rounded 20px corners, 12px outer spacing, original paper background inside, and a small circular close control beside settings. Existing internal panel design unchanged.
+- Native drawer integration passes; saved screenshot visually inspected for header alignment and corner appearance. Updated working dist directly; no ZIP.

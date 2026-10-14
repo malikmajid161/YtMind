@@ -108,7 +108,7 @@ try {
   });
   await expect(watch.locator("#ytmind-launch")).toHaveAttribute(
     "data-ytmind-version",
-    "3.0.14",
+    "3.0.15",
     { timeout: 5000 },
   );
   assert.ok(
@@ -122,6 +122,7 @@ try {
   await watch.locator("#ytmind-launch").click();
   const embedded = watch.frameLocator("#ytmind-drawer iframe");
   await embedded.locator(".tabs").waitFor();
+  await watch.screenshot({ path: "artifacts/drawer-rounded.png" });
   await embedded
     .getByText("Controlled React Tutorial", { exact: true })
     .waitFor();

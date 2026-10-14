@@ -63,13 +63,13 @@ function ensureLauncher() {
   const host = document.fullscreenElement || document.body;
   if (!host) return;
   const existing = document.getElementById("ytmind-launch");
-  if (existing && existing.dataset.ytmindVersion === "3.0.14") {
+  if (existing && existing.dataset.ytmindVersion === "3.0.15") {
     if (existing.parentElement !== host) host.append(existing);
     return;
   }
   existing?.remove();
   const button = document.createElement("button");
-  button.dataset.ytmindVersion = "3.0.14";
+  button.dataset.ytmindVersion = "3.0.15";
   button.id = "ytmind-launch";
   button.textContent = "🧠 YTMind";
   button.title = "Open your video study workspace";
@@ -101,10 +101,13 @@ function ensureLauncher() {
     drawer.id = "ytmind-drawer";
     Object.assign(drawer.style, {
       position: "fixed",
-      top: "0",
-      right: "0",
-      height: "100vh",
-      width: "min(460px, 100vw)",
+      top: "12px",
+      right: "12px",
+      height: "calc(100vh - 24px)",
+      width: "min(460px, calc(100vw - 24px))",
+      borderRadius: "20px",
+      overflow: "hidden",
+      border: "1px solid #dfe4d8",
       zIndex: "2147483647",
       background: "#fff",
       boxShadow: "-8px 0 32px #0004",
@@ -112,15 +115,23 @@ function ensureLauncher() {
       flexDirection: "column",
     });
     const close = document.createElement("button");
-    close.textContent = "Close YTMind ×";
+    close.textContent = "×";
+    close.title = "Close YTMind";
     close.setAttribute("aria-label", "Close YTMind");
     Object.assign(close.style, {
-      padding: "10px",
+      position: "absolute",
+      top: "22px",
+      right: "76px",
+      width: "34px",
+      height: "34px",
+      padding: "0",
+      zIndex: "1",
       cursor: "pointer",
-      color: "#172316",
-      background: "#b9f078",
-      border: "0",
-      font: "600 14px system-ui",
+      color: "#203327",
+      background: "#f7f8f2",
+      border: "1px solid #dfe4d8",
+      borderRadius: "50%",
+      font: "400 22px system-ui",
     });
     close.onclick = () => {
       drawer.remove();
