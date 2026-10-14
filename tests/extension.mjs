@@ -127,7 +127,7 @@ try {
   });
   await expect(watch.locator("#ytmind-launch")).toHaveAttribute(
     "data-ytmind-version",
-    "3.0.25",
+    "3.0.26",
     { timeout: 5000 },
   );
   assert.ok(
@@ -289,6 +289,17 @@ try {
     chrome.storage.local.get("settings"),
   );
   assert.equal(keyResult.settings.apiKey, "test-key-only");
+  console.log(
+    "Real helper health from extension worker:",
+    JSON.stringify(
+      await panel.evaluate(() =>
+        chrome.runtime.sendMessage({
+          type: "MEDIA_HELPER",
+          operation: "health",
+        }),
+      ),
+    ),
+  );
   // Captionless native workspace obtains full audio via the local helper bridge.
   const helperJob = "11111111-1111-4111-8111-111111111111";
   await context.route("http://127.0.0.1:4175/**", (route) => {

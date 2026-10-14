@@ -60,3 +60,27 @@ test("paired extension alone receives local helper CORS access", async () => {
     await new Promise((resolve) => server.close(resolve));
   }
 });
+
+test("originless background requests can pair, while foreign web origins still cannot", async () => {
+  const previous = process.env.YTMIND_EXTENSION_ID;
+  process.env.YTMIND_EXTENSION_ID = "a".repeat(32);
+  const server = await previewServer(0);
+  const url = `http://127.0.0.1:${server.address().port}/api/media/health`;
+  try {
+    const paired = await fetch(url, {
+      headers: { "X-YTMind-Extension": "a".repeat(32) },
+    });
+    assert.equal((await paired.json()).paired, true);
+    const blocked = await fetch(url, {
+      headers: {
+        origin: "https://attacker.invalid",
+        "X-YTMind-Extension": "a".repeat(32),
+      },
+    });
+    assert.equal(blocked.status, 403);
+  } finally {
+    if (previous === undefined) delete process.env.YTMIND_EXTENSION_ID;
+    else process.env.YTMIND_EXTENSION_ID = previous;
+    await new Promise((resolve) => server.close(resolve));
+  }
+});

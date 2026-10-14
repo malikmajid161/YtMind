@@ -241,3 +241,20 @@ Caption checkpoint regression results: 50/50 unit tests, build, browser UI integ
 - Moved drawer width preference storage exclusively to background worker. Page script uses a narrow DRAWER_PREFERENCE message and falls back safely when runtime is missing/invalidated. Compiled content.js contains no storage or .local access.
 - Background validates YouTube/extension sender, exposes only numeric width, and rejects out-of-range values or foreign origins. No arbitrary storage access or API key exposure.
 - 83 unit tests pass, including an accessor trap that would throw if page code touches storage. Working dist 3.0.25 rebuilt directly; no ZIP. Old error entries may remain in Chrome until cleared and old video documents may need one refresh after update.
+
+## 2026-10-14 — Repeated content.js:606 diagnostic
+
+- Read Chrome Profile 1's YTMind entry without modifying the profile. Observed ID iljnghflfclicckiehblmeiomodjpncc and correct loaded path app/dist. Persisted entry did not provide the live loaded version.
+- On-disk manifest 3.0.25; content.js contains no storage/.local references. Reported repeated stack does not match current on-disk source. Likely historical error or stale injected page context, but live recurrence is not yet established.
+- Desktop computer-use and browser-use initialization both failed with kernel-assets path error. Cannot inspect/clear live Chrome error cards through those tools; did not fabricate a live UI check or modify Chrome profile files.
+- Need user to clear old error entries and reproduce from a new YouTube tab after extension reload, confirming live version 3.0.25. No additional speculative code patch or ZIP.
+
+## 2026-10-14 — v3.0.26 Actual helper pairing failure fixed
+
+- User still saw old optional tab-capture notice and insufficient-source result. Real localhost helper was running and configured for the correct extension, but actual native background fetch returned ready:true/paired:false because Chrome omitted Origin on that request.
+- Moved all native helper requests out of the YouTube-embedded panel to validated background operations. Proxy only permits fixed loopback media endpoints, strict video/job/index identifiers, bounded audio sizes and byte-preserving transfer. Content pages cannot invoke this privileged helper API.
+- Background sends X-YTMind-Extension containing its own runtime ID. Helper accepts the configured ID for originless extension requests while still rejecting foreign web origins even if they send that header. Added regression for this exact mismatch.
+- Restarted only the identified project native-helper process with updated code. Real isolated Chrome extension ID iljnghflfclicckiehblmeiomodjpncc now reports ready:true/paired:true through its background worker, not a mocked health request. Native integration also completes the audio-to-notes path using controlled media/provider responses.
+- Opening source with ready helper no longer attempts blocked tabCapture or displays the misleading toolbar activation warning. Displays full-video audio availability; clicking Generate starts fetching/transcription and later replaces source status with ASR segment count. Helper failures remain explicit rather than silently regenerating the old insufficient-source answer.
+- 86 unit tests and native integration pass. One earlier native run timed out at pre-existing title/focus wait; subsequent full native run passed. This does not claim a newly measured production ASR accuracy result; previous real six-minute audio/provider result remains the live evidence.
+- Working dist 3.0.26 rebuilt directly without ZIP. Source history preserved.

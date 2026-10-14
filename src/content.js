@@ -79,14 +79,14 @@ function ensureLauncher() {
   if (
     existing &&
     existing.dataset.ytmindInstance === contentInstance &&
-    existing.dataset.ytmindVersion === "3.0.25"
+    existing.dataset.ytmindVersion === "3.0.26"
   ) {
     if (existing.parentElement !== host) host.append(existing);
     return;
   }
   existing?.remove();
   const button = document.createElement("button");
-  button.dataset.ytmindVersion = "3.0.25";
+  button.dataset.ytmindVersion = "3.0.26";
   button.dataset.ytmindInstance = contentInstance;
   button.id = "ytmind-launch";
   button.textContent = "🧠 YTMind";

@@ -3,6 +3,7 @@ import { createService } from "./service.js";
 import { audioCommand, audioClock } from "./capture-audio.js";
 import { youtubeVideoId } from "./source.js";
 import { connectVideoTab } from "./connection.js";
+import { helperRequest } from "./helper-client.js";
 const service = createService({
   store: new Store(),
   readSettings: async () =>
@@ -38,6 +39,7 @@ async function dispatch(m, sender) {
       throw new Error("Video changed. Retry on the current video.");
   } else if (!sender.url?.startsWith(chrome.runtime.getURL("")))
     throw new Error("Untrusted extension page.");
+  if (m.type === "MEDIA_HELPER") return helperRequest(m);
   if (m.type === "DRAWER_PREFERENCE") {
     if (m.width !== undefined) {
       if (!Number.isFinite(m.width) || m.width < 200 || m.width > 4096)
@@ -143,6 +145,21 @@ async function startVideo(tab, audio = true) {
     interval: config.interval,
     profile: config.profile,
   });
+  if (audio && config.apiKey && !s?.transcriptCount) {
+    const health = await helperRequest({ operation: "health" }).catch(
+      () => null,
+    );
+    if (health?.ready && health?.paired) {
+      await service.dispatch({
+        type: "AUDIO_STATE",
+        videoId: info.videoId,
+        status: "idle",
+        message:
+          "Full-video audio is available. Generate notes to transcribe it with Groq.",
+      });
+      return;
+    }
+  }
   if (audio && config.apiKey && !s?.transcriptCount)
     await audioCommand(
       { type: "AUDIO_START", tabId: tab.id, videoId: info.videoId },

@@ -23,7 +23,11 @@ export async function mediaRequest(req, res, url) {
   const pairedOrigin = /^[a-p]{32}$/.test(process.env.YTMIND_EXTENSION_ID || "")
     ? `chrome-extension://${process.env.YTMIND_EXTENSION_ID}`
     : null;
-  const fromPairedExtension = !!pairedOrigin && origin === pairedOrigin;
+  const fromPairedExtension =
+    !!pairedOrigin &&
+    (origin === pairedOrigin ||
+      (!origin &&
+        req.headers["x-ytmind-extension"] === process.env.YTMIND_EXTENSION_ID));
   if (
     (origin &&
       origin !== `http://${req.headers.host}` &&
@@ -39,7 +43,10 @@ export async function mediaRequest(req, res, url) {
     res.setHeader("Access-Control-Allow-Origin", pairedOrigin);
     res.setHeader("Vary", "Origin");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type, X-YTMind-Extension",
+    );
   }
   if (req.method === "OPTIONS") {
     res.writeHead(204);

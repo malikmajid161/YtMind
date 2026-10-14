@@ -163,7 +163,9 @@ async function refresh(force = false) {
         ? `${s.transcript.length} ${s.captionSource?.includes("audio") ? "speech recognition" : s.captionStatus === "manual" ? "imported text" : "caption"} segments · ${s.ingestCoverage?.status === "partial" ? "partial audio source" : "source ready"}`
         : s.captionStatus === "blocked"
           ? `YouTube blocked playback · ${s.captionMessage || "Check the video player and retry captions"}`
-          : s.audioState === "error" || s.audioState === "needs-key"
+          : ["error", "needs-key", "listening", "idle"].includes(
+                s.audioState,
+              ) && s.audioMessage
             ? s.audioMessage
             : audioActive
               ? videoPaused
@@ -589,12 +591,15 @@ async function run(mode, query = "", resumeJob = null, sourceReady = false) {
   ) {
     let helperReady = false;
     try {
-      const health = await fetch("http://127.0.0.1:4175/api/media/health", {
-        signal: AbortSignal.timeout(2500),
-      });
-      helperReady = health.ok && (await health.json()).paired;
-    } catch {
-      /* Frame-only workflow remains available without helper. */
+      const health = await api("MEDIA_HELPER", { operation: "health" });
+      helperReady = health.ready && health.paired;
+      if (!helperReady)
+        notice(
+          "Local helper is reachable but is not paired to this extension.",
+          true,
+        );
+    } catch (error) {
+      notice(error.message, true);
     }
     if (helperReady) {
       await ingestLink(
@@ -605,6 +610,7 @@ async function run(mode, query = "", resumeJob = null, sourceReady = false) {
       );
       return;
     }
+    return;
   }
   requestBusy = true;
   pauseRequested = false;
@@ -1319,29 +1325,45 @@ async function ingestLink(id, language, nextMode = "notes", nextQuery = "") {
       throw new Error(
         "Add your Groq API key in Settings before automatic link processing.",
       );
+    if (!studioMode)
+      await api("AUDIO_STATE", {
+        videoId: id,
+        status: "listening",
+        message:
+          "Fetching full-video audio locally; transcription follows with Groq…",
+      });
     notice(
       "Fetching the video's audio… This happens locally; private or unavailable sources may fail.",
     );
-    const helperUrl = (path) =>
-      studioMode ? path : `http://127.0.0.1:4175${path}`;
-    const response = await fetch(helperUrl("/api/media"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ videoId: id }),
-      signal: controller.signal,
-    });
-    const created = await response.json();
-    if (!response.ok)
-      throw new Error(created.error || "The media helper is unavailable.");
+    let created;
+    if (studioMode) {
+      const response = await fetch("/api/media", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ videoId: id }),
+        signal: controller.signal,
+      });
+      created = await response.json();
+      if (!response.ok)
+        throw new Error(created.error || "The media helper is unavailable.");
+    } else
+      created = await api("MEDIA_HELPER", { operation: "create", videoId: id });
     let job;
     do {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       if (controller.signal.aborted) throw new Error("Link import cancelled.");
-      const check = await fetch(helperUrl(`/api/media/${created.id}`), {
-        signal: controller.signal,
-      });
-      job = await check.json();
-      if (!check.ok || job.status === "failed")
+      if (studioMode) {
+        const check = await fetch(`/api/media/${created.id}`, {
+          signal: controller.signal,
+        });
+        job = await check.json();
+        if (!check.ok) throw new Error(job.error || "Video retrieval failed.");
+      } else
+        job = await api("MEDIA_HELPER", {
+          operation: "status",
+          jobId: created.id,
+        });
+      if (job.status === "failed")
         throw new Error(job.error || "Video retrieval failed.");
     } while (job.status === "processing");
     await api("SESSION", {
@@ -1354,14 +1376,29 @@ async function ingestLink(id, language, nextMode = "notes", nextQuery = "") {
       notice(
         `Transcribing section ${index + 1}/${job.chunks.length} with Groq…`,
       );
-      const audio = await fetch(helperUrl(chunk.audioUrl), {
-        signal: controller.signal,
-      });
-      if (!audio.ok)
-        throw new Error("Audio section is unavailable. Retry the link import.");
-      const file = new File([await audio.blob()], "source.mp3", {
-        type: "audio/mpeg",
-      });
+      let audioBlob;
+      if (studioMode) {
+        const response = await fetch(chunk.audioUrl, {
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error("Audio section is unavailable.");
+        audioBlob = await response.blob();
+      } else {
+        const audio = await api("MEDIA_HELPER", {
+          operation: "audio",
+          jobId: created.id,
+          index,
+        });
+        audioBlob = new Blob(
+          [
+            Uint8Array.from(atob(audio.base64), (character) =>
+              character.charCodeAt(0),
+            ),
+          ],
+          { type: "audio/mpeg" },
+        );
+      }
+      const file = new File([audioBlob], "source.mp3", { type: "audio/mpeg" });
       segments.push(
         ...(await transcribeAudio(file, config.apiKey, {
           offset: chunk.start,

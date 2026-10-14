@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "YTMind - Your video, understood",
-  "version": "3.0.25",
+  "version": "3.0.26",
   "minimum_chrome_version": "116",
   "description": "Turn YouTube evidence into study notes, actions, and a connected learning library.",
   "permissions": [
