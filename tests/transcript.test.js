@@ -208,3 +208,36 @@ test("automatically opened transcript panel closes even when reading is aborted"
     globalThis.document = previous;
   }
 });
+
+test("an open Short uses live-player caption capture and the active Short title", async () => {
+  const previousDocument = globalThis.document,
+    previousLocation = globalThis.location,
+    previousFetch = globalThis.fetch;
+  globalThis.location = {
+    href: "https://www.youtube.com/shorts/abcdefghijk",
+    search: "",
+  };
+  globalThis.document = {
+    querySelectorAll: () => [],
+    querySelector: (selector) =>
+      selector.includes("h2") ? { textContent: "Active coding Short" } : null,
+    title: "YouTube",
+  };
+  globalThis.fetch = async () => new Response("");
+  const parser = new TranscriptFetcher();
+  parser._waitForRealVideo = async () => {};
+  parser._viaPlayerCaptions = async (id) => {
+    assert.equal(id, "abcdefghijk");
+    return [{ text: "Run npm install", startTime: 2 }];
+  };
+  try {
+    const result = await parser.fetch("abcdefghijk");
+    assert.equal(result.source, "player captions");
+    assert.equal(result.title, "Active coding Short");
+    assert.equal(result.transcript[0].text, "Run npm install");
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.location = previousLocation;
+    globalThis.fetch = previousFetch;
+  }
+});

@@ -195,3 +195,10 @@ Caption checkpoint regression results: 50/50 unit tests, build, browser UI integ
 - Explicitly support questions in Roman Urdu and other languages while retaining the user's English-output preference. Service regression passes Roman Urdu question through the provider with source evidence; this is routing verification, not a multilingual accuracy benchmark.
 - Added Generate speaking notes in Notes. Source-grounded natural English script uses the existing API/SAGE path and full-source batches when deep mode is enabled. Stored alongside ordinary notes. Added Read aloud and Stop audio to generated outputs using browser speech synthesis, English voice selection and short utterance chunks. Voice availability/quality depends on browser/system; no downloaded audio file or measured naturalness claim.
 - 75 unit tests pass, browser integration passes with mocked provider responses. Working dist 3.0.19 rebuilt directly; no ZIP generated.
+
+## 2026-10-14 — v3.0.20 Shorts capture
+
+- Shorts URLs were parsed already, but transcript capture treated only watch?v= pages as an open player. Uses shared YouTube URL parser for Shorts/watch/live matching and navigation checks, enabling signed live caption requests on Shorts.
+- Active Short title/CC controls/player are preferred; real Shorts video without a legacy movie_player no longer waits an unnecessary minute. Removed unverified visible-transcript fallback that could reuse stale SPA source text.
+- 76 unit tests pass, including open-Short player captions/title regression. Native fixture test navigates between watch videos and two Shorts, asserting distinct session captions and continued capture. Test fixtures now supply matching player metadata rather than relying on unverified DOM captions.
+- Updated working dist to 3.0.20 directly; no ZIP. Missing-caption Shorts still require readable frames or permitted audio capture; this is not a claim that every Short has captions or a production corpus accuracy measurement.

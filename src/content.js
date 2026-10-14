@@ -5,6 +5,14 @@ try {
   performance.setResourceTimingBufferSize(3000);
 } catch {}
 const id = () => youtubeVideoId(location.href);
+const videoTitle = () =>
+  document
+    .querySelector(
+      "ytd-reel-video-renderer[is-active] h2, ytd-reel-video-renderer[is-active] #title",
+    )
+    ?.textContent?.trim() ||
+  document.querySelector("h1.ytd-watch-metadata")?.textContent?.trim() ||
+  document.title.replace(/ - YouTube$/, "");
 const videoElement = () =>
   document.querySelector("ytd-reel-video-renderer[is-active] video") ||
   [...document.querySelectorAll("video.html5-main-video")].find(
@@ -63,13 +71,13 @@ function ensureLauncher() {
   const host = document.fullscreenElement || document.body;
   if (!host) return;
   const existing = document.getElementById("ytmind-launch");
-  if (existing && existing.dataset.ytmindVersion === "3.0.19") {
+  if (existing && existing.dataset.ytmindVersion === "3.0.20") {
     if (existing.parentElement !== host) host.append(existing);
     return;
   }
   existing?.remove();
   const button = document.createElement("button");
-  button.dataset.ytmindVersion = "3.0.19";
+  button.dataset.ytmindVersion = "3.0.20";
   button.id = "ytmind-launch";
   button.textContent = "🧠 YTMind";
   button.title = "Open your video study workspace";
@@ -286,9 +294,7 @@ async function navigate(force = false) {
   await send({
     type: "SESSION",
     videoId: next,
-    title:
-      document.querySelector("h1.ytd-watch-metadata")?.textContent?.trim() ||
-      document.title.replace(/ - YouTube$/, ""),
+    title: videoTitle(),
   });
   captions(next, token).catch(() => {
     if (current === next && epoch === token)
@@ -378,9 +384,7 @@ chrome.runtime.onMessage.addListener((m, sender, respond) => {
     respond({
       navigating: !!navigationStarted,
       videoId: current,
-      title: document
-        .querySelector("h1.ytd-watch-metadata")
-        ?.textContent?.trim(),
+      title: videoTitle(),
       capturing: Date.now() < lease,
       currentTime: videoElement()?.currentTime || 0,
       paused: videoElement()?.paused ?? true,

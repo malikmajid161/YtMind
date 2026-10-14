@@ -62,7 +62,7 @@ try {
     true,
   );
   const id = "abcdefghijk";
-  const fixture = `<!doctype html><html><head><title>Controlled React Tutorial - YouTube</title></head><body><div id="movie_player"><video class="html5-main-video" muted></video></div><h1 class="ytd-watch-metadata">Controlled React Tutorial</h1><ytd-transcript-segment-renderer>0:10 React state remembers a value. Use useState at the top level.</ytd-transcript-segment-renderer><ytd-transcript-segment-renderer>0:30 Run npm install before starting the project.</ytd-transcript-segment-renderer></body></html>`;
+  const fixture = `<!doctype html><html><head><title>Controlled React Tutorial - YouTube</title></head><body><script>var ytInitialPlayerResponse = {"videoDetails":{"videoId":"abcdefghijk","title":"Controlled React Tutorial"},"playabilityStatus":{"status":"OK"}};</script><div id="movie_player"><video class="html5-main-video" muted></video></div><h1 class="ytd-watch-metadata">Controlled React Tutorial</h1><ytd-transcript-segment-renderer>0:10 React state remembers a value. Use useState at the top level.</ytd-transcript-segment-renderer><ytd-transcript-segment-renderer>0:30 Run npm install before starting the project.</ytd-transcript-segment-renderer></body></html>`;
   await context.route("https://www.youtube.com/**", (route) =>
     route.fulfill({ contentType: "text/html", body: fixture }),
   );
@@ -108,7 +108,7 @@ try {
   });
   await expect(watch.locator("#ytmind-launch")).toHaveAttribute(
     "data-ytmind-version",
-    "3.0.19",
+    "3.0.20",
     { timeout: 5000 },
   );
   assert.ok(
@@ -302,10 +302,40 @@ try {
       chrome.tabs.sendMessage(tabId, { type: "CAPTURE_START", videoId }),
     { tabId: watchTabId, videoId: id },
   );
-  for (const nextId of ["spa00000001", "spa00000002", id]) {
+  for (const nextId of [
+    "spa00000001",
+    "spa00000002",
+    "short000001",
+    "short000002",
+    id,
+  ]) {
     await watch.evaluate((videoId) => {
       document.dispatchEvent(new Event("yt-navigate-start"));
-      history.pushState({}, "", `/watch?v=${videoId}`);
+      history.pushState(
+        {},
+        "",
+        videoId.startsWith("short")
+          ? `/shorts/${videoId}`
+          : `/watch?v=${videoId}`,
+      );
+      document
+        .querySelectorAll("script[data-spa-source], ytd-reel-video-renderer")
+        .forEach((node) => node.remove());
+      document.querySelectorAll("script:not([src])").forEach((node) => {
+        if (node.textContent.includes("ytInitialPlayerResponse")) node.remove();
+      });
+      const metadata = document.createElement("script");
+      metadata.dataset.spaSource = "true";
+      metadata.textContent = `var ytInitialPlayerResponse = ${JSON.stringify({ videoDetails: { videoId, title: `Tutorial ${videoId}` }, playabilityStatus: { status: "OK" } })};`;
+      document.body.append(metadata);
+      if (videoId.startsWith("short")) {
+        const reel = document.createElement("ytd-reel-video-renderer");
+        reel.setAttribute("is-active", "");
+        const title = document.createElement("h2");
+        title.textContent = `Tutorial ${videoId}`;
+        reel.append(title, document.createElement("video"));
+        document.body.append(reel);
+      }
       document.querySelector("h1").textContent = `Tutorial ${videoId}`;
       for (const segment of document.querySelectorAll(
         "ytd-transcript-segment-renderer",

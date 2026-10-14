@@ -1,3 +1,4 @@
+import { youtubeVideoId } from "./source.js";
 // ============================================================
 //  Transcript Fetcher
 //  YouTube often blocks the simple caption URL, so this tries
@@ -88,8 +89,7 @@ export class TranscriptFetcher {
   async fetch(videoId) {
     // An ad blocks the real player: wait for it to finish first
     await this._waitForRealVideo();
-    const openVideo =
-      new URLSearchParams(globalThis.location?.search).get("v") === videoId;
+    const openVideo = this._openVideoId() === videoId;
 
     // Use the loaded watch page first. A second watch request can receive a
     // login challenge even when the user's current player is working.
@@ -163,12 +163,13 @@ export class TranscriptFetcher {
     }
 
     const errors = [];
-    const isOpenVideo =
-      new URLSearchParams(location.search).get("v") === videoId;
+    const isOpenVideo = this._openVideoId() === videoId;
     const methods = [
       ...(isOpenVideo
         ? [
-            ["visible transcript", () => this._visibleTranscript()],
+            ...(this._allowExistingDom
+              ? [["visible transcript", () => this._visibleTranscript()]]
+              : []),
             ["player captions", () => this._viaPlayerCaptions(videoId)],
           ]
         : []),
@@ -185,10 +186,7 @@ export class TranscriptFetcher {
       try {
         const transcript = await run();
         if (transcript && transcript.length) {
-          if (
-            isOpenVideo &&
-            new URLSearchParams(location.search).get("v") !== videoId
-          )
+          if (isOpenVideo && this._openVideoId() !== videoId)
             throw new Error("Video changed during caption fetch");
           console.log(
             `[TranscriptFetcher] ✅ Got ${transcript.length} segments via ${name}`,
@@ -320,7 +318,10 @@ export class TranscriptFetcher {
         });
 
     let url = findUrl();
-    const ccBtn = document.querySelector(".ytp-subtitles-button");
+    const ccBtn =
+      document.querySelector(
+        "ytd-reel-video-renderer[is-active] .ytp-subtitles-button",
+      ) || document.querySelector(".ytp-subtitles-button");
     let toggled = false;
 
     if (!url) {
@@ -460,8 +461,20 @@ export class TranscriptFetcher {
     return null;
   }
 
+  _openVideoId() {
+    return youtubeVideoId(
+      globalThis.location?.href ||
+        `https://www.youtube.com/watch${globalThis.location?.search || ""}`,
+    );
+  }
+
   _domTitle() {
     return (
+      document
+        .querySelector(
+          "ytd-reel-video-renderer[is-active] h2, ytd-reel-video-renderer[is-active] #title",
+        )
+        ?.textContent?.trim() ||
       document
         .querySelector("h1.ytd-watch-metadata yt-formatted-string")
         ?.textContent?.trim() ||
@@ -481,8 +494,13 @@ export class TranscriptFetcher {
   async _waitForRealVideo() {
     for (let i = 0; i < 60; i++) {
       // up to ~60s
-      const player = document.querySelector("#movie_player");
+      const player =
+        document.querySelector(
+          "ytd-reel-video-renderer[is-active] .html5-video-player",
+        ) || document.querySelector("#movie_player");
       if (!player) {
+        if (document.querySelector("ytd-reel-video-renderer[is-active] video"))
+          return;
         await this._sleep(1000);
         continue;
       }
