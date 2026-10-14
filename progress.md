@@ -234,3 +234,10 @@ Caption checkpoint regression results: 50/50 unit tests, build, browser UI integ
 - Library lists all saved video history sorted by most recent visit, and saved notes/answers can be opened there. Output bodies are rendered on demand when a history entry is expanded. Diamond is selection for research, independent of retention.
 - Width/storage lifecycle repair from 3.0.23 also passes the final native reinjection/reload regression after retaining both version and instance checks for malformed stale launchers.
 - 82 unit tests pass, including old unpinned source/output/frame retention across cleanup and service reopening. Browser integration verifies unpinned history output access; native extension integration passes. Working dist 3.0.24 updated directly without ZIP.
+
+## 2026-10-14 — v3.0.25 Remove storage access from page script
+
+- Repeated report references content.js:606 reading local; current 3.0.24 line 606 is expand-button UI, not storage. Retained error or stale injection does not match current build.
+- Moved drawer width preference storage exclusively to background worker. Page script uses a narrow DRAWER_PREFERENCE message and falls back safely when runtime is missing/invalidated. Compiled content.js contains no storage or .local access.
+- Background validates YouTube/extension sender, exposes only numeric width, and rejects out-of-range values or foreign origins. No arbitrary storage access or API key exposure.
+- 83 unit tests pass, including an accessor trap that would throw if page code touches storage. Working dist 3.0.25 rebuilt directly; no ZIP. Old error entries may remain in Chrome until cleared and old video documents may need one refresh after update.

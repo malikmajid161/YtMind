@@ -16,6 +16,7 @@ const contentTypes = new Set([
   "FRAME",
   "CAPTURE_ERROR",
   "ENDED",
+  "DRAWER_PREFERENCE",
 ]);
 async function dispatch(m, sender) {
   const fromContent = !sender.url?.startsWith(chrome.runtime.getURL(""));
@@ -26,11 +27,28 @@ async function dispatch(m, sender) {
       throw new Error("Unsupported content request.");
     // MessageSender.url can retain the initial document URL after YouTube's
     // history navigation. Check the live tab URL instead of rejecting new videos.
-    const currentTab = await chrome.tabs.get(sender.tab.id);
-    if (youtubeVideoId(currentTab.url) !== m.videoId)
+    const currentTab =
+      m.type === "DRAWER_PREFERENCE"
+        ? null
+        : await chrome.tabs.get(sender.tab.id);
+    if (
+      m.type !== "DRAWER_PREFERENCE" &&
+      youtubeVideoId(currentTab.url) !== m.videoId
+    )
       throw new Error("Video changed. Retry on the current video.");
   } else if (!sender.url?.startsWith(chrome.runtime.getURL("")))
     throw new Error("Untrusted extension page.");
+  if (m.type === "DRAWER_PREFERENCE") {
+    if (m.width !== undefined) {
+      if (!Number.isFinite(m.width) || m.width < 200 || m.width > 4096)
+        throw new Error("Invalid drawer width.");
+      await chrome.storage.local.set({ drawerWidth: Math.round(m.width) });
+    }
+    const value = await chrome.storage.local.get("drawerWidth");
+    return {
+      width: Number.isFinite(value.drawerWidth) ? value.drawerWidth : 460,
+    };
+  }
   if (m.type === "START_ACTIVE_VIDEO") {
     const [tab] = await chrome.tabs.query({
       active: true,

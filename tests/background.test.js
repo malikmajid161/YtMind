@@ -182,3 +182,28 @@ test("SPA navigation accepts the current video even when sender URL is the old d
   );
   assert.equal(saved.transcript[0].text, "New source");
 });
+
+test("YouTube drawer preference requests expose only a validated width", async () => {
+  assert.deepEqual(
+    await dispatch(
+      { type: "DRAWER_PREFERENCE", width: 640 },
+      youtube("abcdefghijk"),
+    ),
+    { width: 640 },
+  );
+  await assert.rejects(
+    dispatch({ type: "DRAWER_PREFERENCE", width: -1 }, youtube("abcdefghijk")),
+    /Invalid drawer/,
+  );
+  await assert.rejects(
+    dispatch(
+      { type: "DRAWER_PREFERENCE" },
+      {
+        id: "test-extension",
+        url: "https://attacker.invalid/",
+        tab: { id: 2 },
+      },
+    ),
+    /Unsupported content/,
+  );
+});
