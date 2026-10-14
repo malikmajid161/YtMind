@@ -98,6 +98,23 @@ try {
   });
   await watch.goto(`https://www.youtube.com/watch?v=${id}`);
   await watch.locator("#ytmind-launch").waitFor();
+  await watch.evaluate(() => {
+    const stale = document.getElementById("ytmind-launch");
+    delete stale.dataset.ytmindVersion;
+    stale.textContent = "Open YTMind from the toolbar";
+    stale.onclick = () => {
+      throw new Error("Stale handler must not run");
+    };
+  });
+  await expect(watch.locator("#ytmind-launch")).toHaveAttribute(
+    "data-ytmind-version",
+    "3.0.14",
+    { timeout: 5000 },
+  );
+  assert.ok(
+    !(await watch.locator("#ytmind-launch").textContent()).includes("toolbar"),
+  );
+
   await watch.evaluate(() => document.getElementById("ytmind-launch").remove());
   await watch.locator("#ytmind-launch").waitFor({ timeout: 5000 });
   assert.equal(await watch.locator("#ytmind-launch").count(), 1);

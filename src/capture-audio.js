@@ -98,7 +98,7 @@ async function handleAudio(m, service) {
     });
   } catch {
     throw new Error(
-      "Click YTMind's toolbar icon on this video once, then start indexing. No recording chooser is required.",
+      "The workspace is open. Optional tab-audio capture needs Chrome's extension activation for this tab. Captions and frames can still be used; upload audio if needed.",
     );
   }
   return offscreen("START", {

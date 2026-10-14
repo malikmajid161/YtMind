@@ -63,11 +63,13 @@ function ensureLauncher() {
   const host = document.fullscreenElement || document.body;
   if (!host) return;
   const existing = document.getElementById("ytmind-launch");
-  if (existing) {
+  if (existing && existing.dataset.ytmindVersion === "3.0.14") {
     if (existing.parentElement !== host) host.append(existing);
     return;
   }
+  existing?.remove();
   const button = document.createElement("button");
+  button.dataset.ytmindVersion = "3.0.14";
   button.id = "ytmind-launch";
   button.textContent = "🧠 YTMind";
   button.title = "Open your video study workspace";
@@ -240,6 +242,13 @@ async function capture(manual = false) {
 }
 chrome.runtime.onMessage.addListener((m, sender, respond) => {
   if (sender.id !== chrome.runtime.id) return;
+  if (m.type === "OPEN_DRAWER") {
+    ensureLauncher();
+    if (!document.getElementById("ytmind-drawer"))
+      document.getElementById("ytmind-launch")?.click();
+    respond({ ok: true });
+    return;
+  }
   if (m.type === "GET_VIDEO") {
     respond({
       navigating: !!navigationStarted,

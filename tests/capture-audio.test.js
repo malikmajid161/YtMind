@@ -35,10 +35,10 @@ test("audio startup failure persists an actionable status instead of disappearin
         { type: "AUDIO_START", tabId: 1, videoId: "abcdefghijk" },
         f.service,
       ),
-      /toolbar icon/,
+      /Optional tab-audio capture/,
     );
     assert.equal(f.states[0].status, "error");
-    assert.match(f.states[0].message, /toolbar icon/);
+    assert.match(f.states[0].message, /Optional tab-audio capture/);
   } finally {
     globalThis.chrome = previous;
   }

@@ -126,10 +126,12 @@ async function refresh(force = false) {
               interval: state.settings.interval,
               profile: state.settings.profile,
             });
-            await api("AUDIO_START", {
-              videoId: info.videoId,
-              tabId: t.id,
-            }).catch((e) => notice(e.message, true));
+            const source = await api("SOURCE_STATE", { videoId: info.videoId });
+            if (!source?.transcriptCount)
+              await api("AUDIO_START", {
+                videoId: info.videoId,
+                tabId: t.id,
+              }).catch((e) => notice(e.message, true));
             info.capturing = true;
           }
           if (t.id !== tabId) followRequested = false;

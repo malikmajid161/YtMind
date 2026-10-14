@@ -169,3 +169,10 @@ Caption checkpoint regression results: 50/50 unit tests, build, browser UI integ
 - Existing frame OCR is filtered when forming evidence and rendering text, so saved fragments no longer automatically contaminate new answers. Counts distinguish readable frames from snapshots saved; no-text is normal for footage without readable text, not a caption failure.
 - Fixed corrupted extension display name to ASCII wording. Source and working dist manifest 3.0.13; reported Chrome version 3.0.11 requires extension Reload to take effect.
 - 70 unit tests pass, including high-confidence garbage regression. Working dist rebuilt directly; no ZIP.
+
+## 2026-10-14 — v3.0.14 Remove stale toolbar-opening path
+
+- Legacy OPEN messages now open the in-page drawer through the content script instead of calling sidePanel.open and responding Use the toolbar icon. Current-version launcher tags replace stale pre-update buttons and handlers. Installation/reload actively reinjects current code into existing YouTube video tabs.
+- Audio-grant errors describe optional audio activation separately from opening the workspace. User authorization is already given; Chrome tabCapture still requires extension invocation for the target tab, verified against official Chrome documentation. Do not promise user authorization alone bypasses that browser rule.
+- Automatic audio fallback is skipped when usable captions already exist, reducing irrelevant audio activation notices. Audio remains available when needed and permitted.
+- 70 unit tests pass; native fixture integration covers replacing a simulated stale toolbar-labelled button and drawer open/close/reopen. Updated app/dist 3.0.14 directly without ZIP.

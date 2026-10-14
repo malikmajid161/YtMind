@@ -68,16 +68,12 @@ chrome.runtime.onMessage.addListener((m, sender, respond) => {
   )
     return;
   if (m.type === "OPEN" && sender.id === chrome.runtime.id && sender.tab) {
-    chrome.sidePanel.open({ windowId: sender.tab.windowId }).then(
-      () => {
-        startVideo(sender.tab).catch((error) =>
-          chrome.runtime
-            .sendMessage({ type: "NOTICE", text: error.message })
-            .catch(() => {}),
-        );
-        respond({ ok: true });
-      },
-      () => respond({ error: "Use the toolbar icon to open YTMind." }),
+    chrome.tabs.sendMessage(sender.tab.id, { type: "OPEN_DRAWER" }).then(
+      () => respond({ ok: true }),
+      () =>
+        respond({
+          error: "Reload YTMind in chrome://extensions to reconnect this page.",
+        }),
     );
     return true;
   }
@@ -129,7 +125,7 @@ async function startVideo(tab, audio = true) {
     interval: config.interval,
     profile: config.profile,
   });
-  if (audio && config.apiKey)
+  if (audio && config.apiKey && !s?.transcriptCount)
     await audioCommand(
       { type: "AUDIO_START", tabId: tab.id, videoId: info.videoId },
       service,
@@ -167,7 +163,12 @@ chrome.runtime.onInstalled.addListener(() => {
       Promise.allSettled(
         tabs
           .filter((tab) => youtubeVideoId(tab.url))
-          .map((tab) => connectVideoTab(tab.id)),
+          .map((tab) =>
+            chrome.scripting.executeScript({
+              target: { tabId: tab.id },
+              files: ["content.js"],
+            }),
+          ),
       ),
     )
     .catch(() => {});
