@@ -46,7 +46,7 @@ Credentials exist only in ignored .env.local; never print or commit them. Previo
 
 ## Resume priorities
 
-1. Inspect GitHub CI for this checkpoint; earlier run 38456924278 failed on CSP before the local fix.
+1. Check latest CI if changes are made. Checkpoint CI 38502652001 passed; earlier run 38456924278 failed on CSP before the fix.
 2. Fix actual YouTube caption readiness/fallback; title refresh is fixed; rerun a live probe while retaining previous observations.
 3. Review service/capture lifecycle and cross-tab races, then run meaningful regression checks for fixes.
 4. Refresh remaining documentation, review final diff and package installable ZIP/release.
@@ -69,3 +69,7 @@ Optional live tests skip when their result files already exist. Preserve old obs
 ## Resume update
 
 Checkpoint commit 07a4034 was pushed and CI run 38502652001 passed. Subsequent live probes verified the corrected video title but still found zero caption segments and one captured frame. YouTube returned empty caption responses and HTTP 400 for get_transcript; the rendered transcript panel was empty. New regressions cover signed caption URL preservation and restoring temporary CC state on cancelled navigation. All 35 core tests pass. Prior observations remain saved separately.
+
+## Local delivery
+
+The working app can be started with npm start and opened at http://127.0.0.1:4173/panel.html?studio. The latest local extension package is artifacts/releases/ytmind-v3-unpacked.zip (ignored build output). Extract it into a folder, enable Developer mode at chrome://extensions, and select that folder using Load unpacked. Keys are configured in Settings and are not included in the ZIP. Automatic caption failure has a manual transcript fallback; live caption reliability remains unfinished.
