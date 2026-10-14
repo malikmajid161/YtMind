@@ -90,16 +90,6 @@ export class TranscriptFetcher {
     await this._waitForRealVideo();
     const openVideo =
       new URLSearchParams(globalThis.location?.search).get("v") === videoId;
-    if (openVideo) {
-      const transcript = this._visibleTranscript();
-      if (transcript.length)
-        return {
-          title: this._domTitle(),
-          channel: this._domChannel(),
-          transcript,
-          source: "visible transcript",
-        };
-    }
 
     // Use the loaded watch page first. A second watch request can receive a
     // login challenge even when the user's current player is working.
@@ -111,6 +101,18 @@ export class TranscriptFetcher {
       html = ""; // Inline boot data can belong to the previous SPA video.
       pagePlayer = null;
     }
+    this._allowExistingDom = pagePlayer?.videoDetails?.videoId === videoId;
+    if (openVideo && this._allowExistingDom) {
+      const transcript = this._visibleTranscript();
+      if (transcript.length)
+        return {
+          title: this._domTitle(),
+          channel: this._domChannel(),
+          transcript,
+          source: "visible transcript",
+        };
+    }
+
     try {
       if (!html) {
         const response = await fetch(
@@ -359,7 +361,8 @@ export class TranscriptFetcher {
     const readSegments = () => this._visibleTranscript();
 
     let segments = readSegments();
-    if (segments.length) return segments;
+    if (segments.length && this._allowExistingDom) return segments;
+    const previousText = JSON.stringify(segments);
 
     document
       .querySelector(
@@ -385,7 +388,10 @@ export class TranscriptFetcher {
       // wait up to ~12s
       await this._sleep(300);
       segments = readSegments();
-      if (segments.length) {
+      if (
+        segments.length &&
+        (this._allowExistingDom || JSON.stringify(segments) !== previousText)
+      ) {
         await this._sleep(500); // let the rest render
         segments = readSegments();
         break;
@@ -397,7 +403,13 @@ export class TranscriptFetcher {
         'ytd-engagement-panel-section-list-renderer[target-id*="transcript"] #visibility-button button',
       )
       ?.click();
-    if (!segments.length) throw new Error("panel opened but no text found");
+    if (
+      !segments.length ||
+      (!this._allowExistingDom && JSON.stringify(segments) === previousText)
+    )
+      throw new Error(
+        "Transcript panel still contains an unverified previous-video source",
+      );
     return segments;
   }
 

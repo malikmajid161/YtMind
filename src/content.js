@@ -93,11 +93,55 @@ async function navigate(force = false) {
     cursor: "pointer",
     boxShadow: "0 4px 24px #0004",
   });
-  button.onclick = () =>
-    send({ type: "OPEN" }).catch((error) => {
-      button.textContent = "Open YTMind from the toolbar 🧠";
-      button.title = error.message;
+  button.onclick = () => {
+    const existing = document.getElementById("ytmind-drawer");
+    if (existing) {
+      existing.remove();
+      button.textContent = "🧠 YTMind";
+      return;
+    }
+    const drawer = document.createElement("div");
+    drawer.id = "ytmind-drawer";
+    Object.assign(drawer.style, {
+      position: "fixed",
+      top: "0",
+      right: "0",
+      height: "100vh",
+      width: "min(460px, 100vw)",
+      zIndex: "2147483647",
+      background: "#fff",
+      boxShadow: "-8px 0 32px #0004",
+      display: "flex",
+      flexDirection: "column",
     });
+    const close = document.createElement("button");
+    close.textContent = "Close YTMind ×";
+    close.setAttribute("aria-label", "Close YTMind");
+    Object.assign(close.style, {
+      padding: "10px",
+      cursor: "pointer",
+      color: "#172316",
+      background: "#b9f078",
+      border: "0",
+      font: "600 14px system-ui",
+    });
+    close.onclick = () => {
+      drawer.remove();
+      button.textContent = "🧠 YTMind";
+    };
+    const frame = document.createElement("iframe");
+    frame.title = "YTMind learning workspace";
+    frame.src = chrome.runtime.getURL("panel.html?embedded");
+    Object.assign(frame.style, {
+      width: "100%",
+      flex: "1",
+      minHeight: "0",
+      border: "0",
+    });
+    drawer.append(close, frame);
+    document.body.append(drawer);
+    button.textContent = "🧠 YTMind";
+  };
   document.body.append(button);
   await send({
     type: "SESSION",

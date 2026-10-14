@@ -99,17 +99,18 @@ try {
   await watch.goto(`https://www.youtube.com/watch?v=${id}`);
   await watch.locator("#ytmind-launch").waitFor();
   await watch.locator("#ytmind-launch").click();
-  await expect
-    .poll(
-      () =>
-        worker.evaluate(
-          async () =>
-            (await chrome.runtime.getContexts({ contextTypes: ["SIDE_PANEL"] }))
-              .length,
-        ),
-      { timeout: 10000 },
-    )
-    .toBeGreaterThan(0);
+  const embedded = watch.frameLocator("#ytmind-drawer iframe");
+  await embedded.locator(".tabs").waitFor();
+  await embedded
+    .getByText("Controlled React Tutorial", { exact: true })
+    .waitFor();
+  await watch
+    .getByRole("button", { name: "Close YTMind", exact: true })
+    .click();
+  assert.equal(await watch.locator("#ytmind-drawer").count(), 0);
+  await watch.locator("#ytmind-launch").click();
+  await embedded.locator(".tabs").waitFor();
+
   await expect
     .poll(
       () =>
@@ -316,7 +317,7 @@ try {
   }, id);
   assert.equal(recovered.videoId, id);
   console.log(
-    "Packaged MV3 checks passed: automatic reconnection after extension reload, actual side-panel opening and automatic indexing, service worker, YouTube fixture ingestion, real IndexedDB, Groq mock/SAGE, pin/clear, local browser OCR.",
+    "Packaged MV3 checks passed: automatic reconnection after extension reload, on-page drawer opening/closing/reopening and automatic indexing, service worker, YouTube fixture ingestion, real IndexedDB, Groq mock/SAGE, pin/clear, local browser OCR.",
   );
 } finally {
   await context.close();

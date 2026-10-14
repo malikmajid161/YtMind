@@ -159,3 +159,22 @@ test("caption accessibility labels are stripped only when they match the timesta
     globalThis.document = previous;
   }
 });
+
+test("unchanged previous-video transcript DOM is rejected after SPA navigation", async () => {
+  const previousDocument = globalThis.document;
+  globalThis.document = { querySelector: () => ({ click() {} }) };
+  const parser = new TranscriptFetcher();
+  parser._allowExistingDom = false;
+  parser._visibleTranscript = () => [
+    { text: "previous video lyrics", startTime: 0 },
+  ];
+  parser._sleep = async () => {};
+  try {
+    await assert.rejects(
+      parser._viaDomPanel("abcdefghijk"),
+      /previous-video source/,
+    );
+  } finally {
+    globalThis.document = previousDocument;
+  }
+});

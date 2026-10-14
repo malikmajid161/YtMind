@@ -492,7 +492,7 @@ const badgeLabels = {
 };
 function outputHTML(o) {
   const v = o.verification || { status: "unchecked", claims: [] };
-  return `<article class="result" data-output="${esc(o.id)}"><div class="result-head"><span class="eyebrow">${o.mode === "notes" ? "YOUR STUDY NOTES" : o.mode === "actions" ? "YOUR ACTION PLAN" : "FROM YOUR SOURCES"}</span><span class="badge ${esc(v.status)}">${badgeLabels[v.status] || "Unchecked"}</span></div><h3 class="result-source-title">${esc(o.mode === "research" ? "Multi-video research" : o.evidence[0]?.title || "Source notes")}</h3><div class="markdown" dir="auto">${markdown(o.answer, o.evidence)}</div><div class="sources"><div class="eyebrow">BACK TO THE SOURCE · ${o.evidence.length} MOMENTS</div>${o.evidence
+  return `<article class="result" data-output="${esc(o.id)}"><div class="result-head"><span class="eyebrow">${o.mode === "notes" ? "YOUR STUDY NOTES" : o.mode === "actions" ? "YOUR ACTION PLAN" : o.generalKnowledge ? "VIDEO + GENERAL KNOWLEDGE" : "FROM YOUR SOURCES"}</span><span class="badge ${esc(v.status)}">${o.generalKnowledge ? "Includes general knowledge" : badgeLabels[v.status] || "Unchecked"}</span></div><h3 class="result-source-title">${esc(o.mode === "research" ? "Multi-video research" : o.evidence[0]?.title || "Source notes")}</h3><div class="markdown" dir="auto">${markdown(o.answer, o.evidence)}</div><div class="sources"><div class="eyebrow">BACK TO THE SOURCE · ${o.evidence.length} MOMENTS</div>${o.evidence
     .map(
       (e, i) =>
         `<div class="source-proof"><button class="source-link" data-seek="${e.startTime}" data-video="${esc(e.videoId)}"><span>E${i + 1} · ${esc(e.title)}<small>${esc(e.kind)} ${session()?.captionStatus === "manual" ? "· manually supplied" : ""}</small></span><span class="stamp">${time(e.startTime)} ↗</span></button><a class="print-source-link" href="https://www.youtube.com/watch?v=${encodeURIComponent(e.videoId)}&t=${Math.floor(e.startTime)}s">https://www.youtube.com/watch?v=${esc(e.videoId)}&amp;t=${Math.floor(e.startTime)}s</a><details><summary>Proof view · read stored excerpt</summary><pre>${esc(e.text)}</pre></details></div>`,
@@ -985,7 +985,7 @@ if (!studioMode && !preview && location.hash !== "#settings") {
       documentUrls: [location.href],
     })
     .catch(() => []);
-  if (contexts.length) {
+  if (contexts.length || new URLSearchParams(location.search).has("embedded")) {
     await api("START_ACTIVE_VIDEO").catch((error) =>
       notice(error.message, true),
     );

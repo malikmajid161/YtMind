@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "YTMind — Your video, understood",
-  "version": "3.0.7",
+  "name": "YTMind \u00e2\u20ac\u201d Your video, understood",
+  "version": "3.0.8",
   "minimum_chrome_version": "116",
   "description": "Turn YouTube evidence into study notes, actions, and a connected learning library.",
   "permissions": [
@@ -14,10 +14,17 @@
     "offscreen"
   ],
   "commands": {
-    "_execute_action": { "suggested_key": { "default": "Ctrl+Shift+Y" } }
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Y"
+      }
+    }
   },
   "host_permissions": ["https://www.youtube.com/*", "https://api.groq.com/*"],
-  "background": { "service_worker": "background.js", "type": "module" },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
   "content_scripts": [
     {
       "matches": ["https://www.youtube.com/*"],
@@ -25,7 +32,9 @@
       "run_at": "document_idle"
     }
   ],
-  "side_panel": { "default_path": "panel.html" },
+  "side_panel": {
+    "default_path": "panel.html"
+  },
   "options_page": "panel.html#settings",
   "action": {
     "default_title": "Open YTMind",
@@ -42,5 +51,11 @@
   },
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; worker-src 'self'; connect-src 'self' https://api.groq.com"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["panel.html"],
+      "matches": ["https://www.youtube.com/*"]
+    }
+  ]
 }

@@ -155,3 +155,44 @@ test("frame OCR cannot verify a claim about garbled caption transcripts", async 
   assert.equal(result.verification.claims[0].verdict, "uncertain");
   assert.match(result.verification.reason, /Source-type audit/);
 });
+
+test("related practical answers are labelled outside knowledge and never source-verified", async () => {
+  let calls = 0;
+  const result = await generate(
+    { sage: false },
+    "chat",
+    "How can we see the Kaaba?",
+    evidence,
+    async () => {
+      calls++;
+      return calls === 1
+        ? "I could not find this in the captured video evidence."
+        : {
+            related: true,
+            answer:
+              "You can see it in person during a visit to Mecca or through a live broadcast. [E1]",
+          };
+    },
+  );
+  assert.equal(result.generalKnowledge, true);
+  assert.match(result.answer, /Related answer — general knowledge/);
+  assert.match(result.answer, /not been checked by SAGE/);
+  assert.ok(!result.answer.includes("[E1]"));
+  assert.equal(result.verification.status, "unchecked");
+});
+
+test("an unrelated missing answer does not acquire a general-knowledge supplement", async () => {
+  let calls = 0;
+  const result = await generate(
+    { sage: false },
+    "chat",
+    "Explain astronomy",
+    evidence,
+    async () =>
+      ++calls === 1
+        ? "I could not find this in the captured video evidence."
+        : { related: false, answer: "ignored" },
+  );
+  assert.equal(result.generalKnowledge, false);
+  assert.ok(!result.answer.includes("ignored"));
+});

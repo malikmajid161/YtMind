@@ -21,7 +21,7 @@ Public videos up to two hours are split into approximately 20-minute audio secti
 
 For this checkout, select **app/dist** using **Load unpacked** at chrome://extensions. Select the folder containing `manifest.json`; the **app** source folder itself is not an installable extension. If `dist` is missing, run `npm run build` inside `app` first.
 
-Alternatively, run `npm run package`, extract the generated ZIP, then select its folder containing `manifest.json` using **Load unpacked**. Pin YTMind and click its brain icon on a YouTube watch page. The right-side interface opens and starts visual indexing. Settings must contain your Groq key for generation and audio transcription.
+Alternatively, run `npm run package`, extract the generated ZIP, then select its folder containing `manifest.json` using **Load unpacked**. Click the green YTMind brain button on a YouTube watch page to open the workspace in a drawer on the right. Close YTMind dismisses the drawer; clicking the brain opens it again. The Chrome toolbar icon remains an alternative native side-panel entry point. Settings must contain your Groq key for generation and audio transcription.
 
 The extension uses captions when available. Missing captions use the tab-audio API and an offscreen worker; this path does not show a recurring screen-sharing chooser. Chrome requires installation permissions and an extension invocation for the target tab. The on-page brain button opens the panel, but the toolbar icon is required to grant tab-audio access. Stop indexing stops audio and frames. A short panel heartbeat expires capture when the workspace closes.
 
