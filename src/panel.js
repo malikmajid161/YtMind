@@ -3,8 +3,9 @@ import DOMPurify from "dompurify";
 import { time, defaults, combineParts } from "./core.js";
 import { recognize } from "./ocr.js";
 import { demoState, demoFrames } from "./preview-data.js";
+import { studioMode, localService, sourceId, fileFrame } from "./studio.js";
 const $ = (s) => document.querySelector(s);
-const preview = !globalThis.chrome?.runtime?.id;
+const preview = !globalThis.chrome?.runtime?.id && !studioMode;
 const esc = (s) =>
   String(s ?? "").replace(
     /[&<>"']/g,
@@ -27,6 +28,7 @@ let state = { sessions: [], nodes: [], edges: [], settings: defaults },
   researchResult = null;
 if (active === "settings") active = "notes";
 async function api(type, fields = {}) {
+  if (studioMode) return localService().dispatch({ type, ...fields });
   if (preview) {
     if (type === "STATE") return structuredClone(demoState);
     if (type === "SETTINGS") return { ...defaults };
@@ -46,6 +48,19 @@ function notice(text, error = false) {
 }
 const session = () => state.sessions.find((s) => s.id === videoId);
 async function content(type, fields = {}) {
+  if (studioMode) {
+    if (type === "SEEK") {
+      window.open(
+        `https://www.youtube.com/watch?v=${videoId}&t=${Math.floor(fields.timestamp || 0)}s`,
+        "_blank",
+        "noopener",
+      );
+      return;
+    }
+    throw new Error(
+      "Automatic capture/captions require the extension. In this workspace, paste a transcript or upload a frame.",
+    );
+  }
   if (preview)
     throw new Error("Use the installed extension to control a video.");
   if (!tabId) throw new Error("Open a YouTube watch page first.");
@@ -56,7 +71,10 @@ async function content(type, fields = {}) {
 async function refresh(force = false) {
   try {
     state = await api("STATE");
-    if (preview) {
+    if (studioMode) {
+      videoId =
+        localStorage.getItem("ytmind-studio-active") || state.sessions[0]?.id;
+    } else if (preview) {
       videoId = state.sessions[0]?.id;
     } else {
       const [t] = await chrome.tabs.query({
@@ -85,7 +103,7 @@ async function refresh(force = false) {
     $("#video-title").textContent = s?.title || "Open a YouTube video";
     $("#source-status").textContent = s
       ? s.transcript.length
-        ? `${s.transcript.length} caption segments · source ready`
+        ? `${s.transcript.length} ${s.captionStatus === "manual" ? "imported text" : "caption"} segments · source ready`
         : "No captions yet · try Frames"
       : "Your next rabbit hole starts here";
     $("#retention").textContent = s?.pinned
@@ -215,7 +233,9 @@ function render() {
         );
     html += sourceTools();
   } else if (active === "vera") {
-    html += `<div class="toolbar"><button class="secondary" id="capture-toggle" ${!s ? "disabled" : ""}>${capture ? "Pause indexing" : "Start visual indexing"}</button><button class="secondary" id="capture-once" ${!s ? "disabled" : ""}>Capture this moment</button></div><div class="status-line">${frames.filter((f) => f.status === "ready").length} / 100 frames indexed · ${capture ? "watching while this panel is open" : "capture paused"}</div><p class="muted">English OCR reads visible text. It cannot reliably understand diagrams or guarantee exact code. Sampling skips similar frames; a manual capture bypasses the filter.</p>`;
+    html += studioMode
+      ? `<label class="muted" for="frame-time">Frame timestamp in seconds</label><input id="frame-time" type="number" min="0" value="0"><div class="toolbar"><label class="secondary" for="frame-files">Add frame images<input id="frame-files" type="file" accept="image/*" multiple hidden ${!s ? "disabled" : ""}></label></div><p class="muted">Images are processed locally. Set their video time so citations point to the right moment.</p>`
+      : `<div class="toolbar"><button class="secondary" id="capture-toggle" ${!s ? "disabled" : ""}>${capture ? "Pause indexing" : "Start visual indexing"}</button><button class="secondary" id="capture-once" ${!s ? "disabled" : ""}>Capture this moment</button></div><div class="status-line">${frames.filter((f) => f.status === "ready").length} / 100 frames indexed · ${capture ? "watching while this panel is open" : "capture paused"}</div><p class="muted">English OCR reads visible text. It cannot reliably understand diagrams or guarantee exact code. Sampling skips similar frames; a manual capture bypasses the filter.</p>`;
     html += frames.length
       ? frames
           .slice()
@@ -543,6 +563,12 @@ document.addEventListener("click", async (e) => {
     if (b.dataset.seek !== undefined) {
       if (b.dataset.video === videoId)
         await content("SEEK", { timestamp: Number(b.dataset.seek) });
+      else if (studioMode)
+        window.open(
+          `https://www.youtube.com/watch?v=${encodeURIComponent(b.dataset.video)}&t=${Math.floor(Number(b.dataset.seek))}s`,
+          "_blank",
+          "noopener",
+        );
       else if (!preview)
         await chrome.tabs.create({
           url: `https://www.youtube.com/watch?v=${b.dataset.video}&t=${Math.floor(Number(b.dataset.seek))}s`,
@@ -682,6 +708,17 @@ document.addEventListener("click", async (e) => {
 document.addEventListener("submit", async (e) => {
   e.preventDefault();
   try {
+    if (e.target.id === "source-form") {
+      const id = sourceId($("#source-url").value);
+      await api("SESSION", {
+        videoId: id,
+        title: $("#source-title").value || "YouTube tutorial",
+      });
+      localStorage.setItem("ytmind-studio-active", id);
+      videoId = id;
+      await refresh(true);
+      notice("Source connected. Add its transcript or frame images to begin.");
+    }
     if (e.target.id === "ask-form") await run("chat", $("#question").value);
     if (e.target.id === "research-form")
       await run("research", $("#research-topic").value);
@@ -721,13 +758,44 @@ document.addEventListener("keydown", (e) => {
     showNode(n.dataset.node);
   }
 });
-if (preview) $("#preview-label").hidden = false;
+if (studioMode) {
+  document.body.classList.add("studio");
+  $("#connect-source").hidden = false;
+  $("#preview-label").hidden = false;
+  $("#preview-label").textContent =
+    "LOCAL WORKSPACE · data stays in this browser";
+  window.addEventListener("ytmind-local", (e) => {
+    if (e.detail.type === "FRAME_AVAILABLE") refresh();
+    if (e.detail.type === "NOTICE") notice(e.detail.text, true);
+  });
+} else if (preview) $("#preview-label").hidden = false;
 else
   chrome.runtime.onMessage.addListener((m) => {
     if (m.type === "FRAME_AVAILABLE") refresh();
     if (m.type === "NOTICE") notice(m.text, true);
   });
 await refresh(true);
+document.addEventListener("change", async (e) => {
+  if (e.target.id !== "frame-files") return;
+  const origin = videoId,
+    files = [...e.target.files].slice(0, 6);
+  const timestamp = Math.max(0, Number($("#frame-time").value) || 0);
+  try {
+    for (const file of files) {
+      const image = await fileFrame(file);
+      const added = await api("FRAME", { videoId: origin, timestamp, image });
+      if (added?.skipped)
+        notice(
+          "OCR queue is full. Wait for the current frames, then add more.",
+          true,
+        );
+    }
+    await refresh(true);
+    notice("Images queued for local OCR.");
+  } catch (err) {
+    notice(err.message, true);
+  }
+});
 if (!preview) {
   const config = await api("SETTINGS");
   if (!config.apiKey || location.hash === "#settings") await openSettings();

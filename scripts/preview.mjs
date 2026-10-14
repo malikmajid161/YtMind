@@ -32,7 +32,7 @@ export function previewServer(port = 4173) {
       );
       res.setHeader(
         "Content-Security-Policy",
-        "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; worker-src 'self' blob:; connect-src 'self' https://api.groq.com",
+        "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; worker-src 'self'; connect-src 'self' https://api.groq.com",
       );
       res.end(await readFile(p));
     } catch {
@@ -47,4 +47,5 @@ export function previewServer(port = 4173) {
 if (process.argv[1]?.endsWith("preview.mjs")) {
   await previewServer();
   console.log("Design preview (sample data): http://127.0.0.1:4173/panel.html");
+  console.log("Working local app: http://127.0.0.1:4173/panel.html?studio");
 }

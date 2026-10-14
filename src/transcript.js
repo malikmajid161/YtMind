@@ -9,6 +9,40 @@
 // ============================================================
 
 export class TranscriptFetcher {
+  constructor(signal) {
+    this.signal = signal;
+  }
+  _signal() {
+    return this.signal
+      ? AbortSignal.any([this.signal, AbortSignal.timeout(15000)])
+      : AbortSignal.timeout(15000);
+  }
+  _decodeCaptions(text) {
+    try {
+      const data = JSON.parse(text);
+      return (data.events || [])
+        .filter((e) => e.segs)
+        .map((e) => ({
+          text: e.segs
+            .map((s) => s.utf8 || "")
+            .join("")
+            .replace(/\s+/g, " ")
+            .trim(),
+          startTime: (e.tStartMs || 0) / 1000,
+        }))
+        .filter((e) => e.text);
+    } catch {}
+    const xml = new DOMParser().parseFromString(text, "text/xml");
+    if (xml.querySelector("parsererror")) return [];
+    return [...xml.querySelectorAll("text[start], p[t]")]
+      .map((e) => ({
+        text: e.textContent.replace(/\s+/g, " ").trim(),
+        startTime: e.hasAttribute("start")
+          ? Number(e.getAttribute("start"))
+          : Number(e.getAttribute("t")) / 1000,
+      }))
+      .filter((e) => e.text && Number.isFinite(e.startTime));
+  }
   _visibleTranscript() {
     const els = document.querySelectorAll(
       "ytd-transcript-segment-renderer, transcript-segment-view-model",
@@ -41,7 +75,7 @@ export class TranscriptFetcher {
         `https://www.youtube.com/watch?v=${videoId}`,
         {
           credentials: "include",
-          signal: AbortSignal.timeout(15000),
+          signal: this._signal(),
         },
       );
       if (response.ok) html = await response.text();
@@ -70,9 +104,14 @@ export class TranscriptFetcher {
         : []),
       ["get_transcript", () => this._viaInnertube(html, initialData)],
       ["caption url", () => this._viaCaptionTrack(player)],
+      ...(isOpenVideo
+        ? [["YouTube transcript panel", () => this._viaDomPanel(videoId)]]
+        : []),
     ];
 
     for (const [name, run] of methods) {
+      if (this.signal?.aborted)
+        throw new Error("Video navigation cancelled caption capture.");
       try {
         const transcript = await run();
         if (transcript && transcript.length) {
@@ -84,7 +123,7 @@ export class TranscriptFetcher {
           console.log(
             `[TranscriptFetcher] ✅ Got ${transcript.length} segments via ${name}`,
           );
-          return { title, channel, transcript };
+          return { title, channel, transcript, source: name };
         }
         errors.push(`${name}: empty`);
       } catch (e) {
@@ -125,7 +164,7 @@ export class TranscriptFetcher {
       `https://www.youtube.com/youtubei/v1/get_transcript${apiKey ? "?key=" + apiKey : ""}`,
       {
         method: "POST",
-        signal: AbortSignal.timeout(15000),
+        signal: this._signal(),
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
@@ -169,7 +208,7 @@ export class TranscriptFetcher {
     const text = await (
       await fetch(track.baseUrl + "&fmt=json3", {
         credentials: "include",
-        signal: AbortSignal.timeout(15000),
+        signal: this._signal(),
       })
     ).text();
     if (!text) throw new Error("blocked by YouTube (empty response)");
@@ -232,27 +271,14 @@ export class TranscriptFetcher {
     }
     if (!url) throw new Error("player did not load captions");
 
-    const u = new URL(url);
-    u.searchParams.set("fmt", "json3");
     const text = await (
-      await fetch(u.toString(), {
+      await fetch(url, {
         credentials: "include",
-        signal: AbortSignal.timeout(15000),
+        signal: this._signal(),
       })
     ).text();
     if (!text) throw new Error("empty");
-    const data = JSON.parse(text);
-    return (data.events || [])
-      .filter((e) => e.segs)
-      .map((e) => ({
-        text: e.segs
-          .map((x) => x.utf8)
-          .join("")
-          .replace(/\s+/g, " ")
-          .trim(),
-        startTime: (e.tStartMs || 0) / 1000,
-      }))
-      .filter((e) => e.text);
+    return this._decodeCaptions(text);
   }
 
   // ── Method B: open "Show transcript" panel and read it ────
@@ -402,6 +428,9 @@ export class TranscriptFetcher {
   }
 
   _sleep(ms) {
-    return new Promise((r) => setTimeout(r, ms));
+    return new Promise((r) => setTimeout(r, ms)).then(() => {
+      if (this.signal?.aborted)
+        throw new Error("Video navigation cancelled caption capture.");
+    });
   }
 }

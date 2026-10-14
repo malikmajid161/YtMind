@@ -13,6 +13,45 @@
   color: var(--ink);
   background: var(--paper);
 }
+#connect-source {
+  margin-bottom: 24px;
+}
+#connect-source input {
+  margin: 9px 0;
+}
+#connect-source .primary {
+  margin-top: 8px;
+}
+.studio main {
+  max-width: 900px;
+}
+.studio .intro h1 {
+  font-size: 46px;
+}
+@media (min-width: 700px) {
+  .studio #source-form {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 1.3fr;
+    gap: 10px;
+    align-items: center;
+  }
+  .studio #source-form .eyebrow {
+    grid-column: 1/-1;
+  }
+  .studio #source-form input,
+  .studio #source-form button {
+    margin: 0;
+  }
+  .studio .tabs button {
+    font-size: 13px;
+  }
+  .studio .result {
+    padding: 28px;
+  }
+  .studio .markdown {
+    font-size: 14px;
+  }
+}
 .source-proof pre {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -24,7 +63,9 @@
   border-radius: 7px;
   color: #506443;
 }
-.print-source-link{display:none}
+.print-source-link {
+  display: none;
+}
 .source-proof details {
   margin: 5px 0 12px;
 }
@@ -100,10 +141,15 @@ select {
   }
   .print-selected .sources {
     display: block;
-    max-height:none;
-    overflow:visible;
+    max-height: none;
+    overflow: visible;
   }
-  .print-source-link{display:block;font-size:9px;overflow-wrap:anywhere;margin:5px 0 10px}
+  .print-source-link {
+    display: block;
+    font-size: 9px;
+    overflow-wrap: anywhere;
+    margin: 5px 0 10px;
+  }
   .print-selected .citation {
     color: black;
     background: none;

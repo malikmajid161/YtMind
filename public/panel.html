@@ -27,6 +27,28 @@
         <h1>Watch. Understand.<br /><span>Make it yours.</span></h1>
         <p>Good ideas deserve more than another open tab.</p>
       </section>
+      <section id="connect-source" hidden>
+        <form id="source-form">
+          <label class="eyebrow" for="source-url">CONNECT A VIDEO</label
+          ><input
+            id="source-url"
+            type="url"
+            placeholder="Paste a YouTube video URL"
+            required
+          /><label class="sr-only" for="source-title">Video title</label
+          ><input
+            id="source-title"
+            placeholder="Give this source a title (optional)"
+            maxlength="300"
+          /><button class="primary" type="submit">
+            Open learning workspace<span>↗</span>
+          </button>
+        </form>
+        <p class="muted">
+          Paste a transcript or upload readable frames. Automatic YouTube
+          capture is available in the extension.
+        </p>
+      </section>
       <section class="video-card" aria-label="Current video">
         <div class="video-top">
           <span class="video-symbol">▶</span>

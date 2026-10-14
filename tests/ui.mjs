@@ -2,6 +2,8 @@ import { chromium } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
 import assert from "node:assert/strict";
 import { previewServer } from "../scripts/preview.mjs";
+import { testStudio } from "./studio.mjs";
+import { testLiveStudio } from "./live-studio.mjs";
 const server = await previewServer(4174);
 let browser;
 try {
@@ -19,9 +21,13 @@ try {
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("http://127.0.0.1:4174/panel.html");
   await page.getByText("YOUR STUDY NOTES", { exact: true }).waitFor();
-  await page.locator('.source-proof summary').first().click();
-  assert.ok((await page.locator('.source-proof pre').first().textContent()).includes('useState'));
-  await page.locator('.source-proof summary').first().click();
+  await page.locator(".source-proof summary").first().click();
+  assert.ok(
+    (await page.locator(".source-proof pre").first().textContent()).includes(
+      "useState",
+    ),
+  );
+  await page.locator(".source-proof summary").first().click();
   await mkdir("artifacts", { recursive: true });
   await page.screenshot({ path: "artifacts/panel-notes.png", fullPage: true });
   assert.equal(
@@ -55,13 +61,28 @@ try {
     true,
   );
   await page.screenshot({ path: "artifacts/panel-mobile.png", fullPage: true });
-  await page.locator('.result').first().evaluate(el=>el.classList.add('print-selected'));
-  await page.emulateMedia({media:'print'});
-  assert.equal(await page.locator('.result').first().isVisible(),true);
-  assert.equal(await page.locator('.sources').first().evaluate(el=>getComputedStyle(el).maxHeight),'none');
-  const pdf=await page.pdf({path:'artifacts/notes-export.pdf',format:'A4',printBackground:true});
-  assert.ok(pdf.subarray(0,4).toString()==='%PDF');
+  await page
+    .locator(".result")
+    .first()
+    .evaluate((el) => el.classList.add("print-selected"));
+  await page.emulateMedia({ media: "print" });
+  assert.equal(await page.locator(".result").first().isVisible(), true);
+  assert.equal(
+    await page
+      .locator(".sources")
+      .first()
+      .evaluate((el) => getComputedStyle(el).maxHeight),
+    "none",
+  );
+  const pdf = await page.pdf({
+    path: "artifacts/notes-export.pdf",
+    format: "A4",
+    printBackground: true,
+  });
+  assert.ok(pdf.subarray(0, 4).toString() === "%PDF");
   assert.deepEqual(errors, []);
+  await testStudio(browser);
+  await testLiveStudio(browser);
   console.log(
     "UI checks passed: seven tabs, graph selection/search, proof view, settings, 320px layout; no page errors.",
   );

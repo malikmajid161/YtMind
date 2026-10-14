@@ -2,6 +2,7 @@ import { chromium } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import assert from "node:assert/strict";
+import { probeYouTube } from "./live-youtube.mjs";
 const dist = path.resolve("dist");
 await mkdir("artifacts/extension-profile", { recursive: true });
 const context = await chromium.launchPersistentContext(
@@ -14,7 +15,12 @@ const context = await chromium.launchPersistentContext(
     ...(process.env.TEST_BROWSER_EXE
       ? { executablePath: process.env.TEST_BROWSER_EXE }
       : {}),
-    args: [`--disable-extensions-except=${dist}`, `--load-extension=${dist}`],
+    args: [
+      `--disable-extensions-except=${dist}`,
+      `--load-extension=${dist}`,
+      "--enable-logging",
+      `--log-file=${path.resolve("artifacts/chrome-extension.log")}`,
+    ],
   },
 );
 try {
@@ -26,18 +32,27 @@ try {
         const management = await context.newPage();
         await management.goto("chrome://extensions/");
         console.log(
-          await management.evaluate(() => {
-            const read = (node) =>
-              [...node.querySelectorAll("*")]
-                .map((n) =>
-                  n.shadowRoot
-                    ? read(n.shadowRoot)
-                    : n.children.length
-                      ? ""
-                      : n.textContent,
-                )
-                .join(" ");
-            return read(document);
+          await management.evaluate(async () => {
+            const toggle = document
+              .querySelector("extensions-manager")
+              ?.shadowRoot?.querySelector("extensions-toolbar")
+              ?.shadowRoot?.querySelector("#devMode");
+            const extensions = await new Promise((resolve) =>
+              chrome.developerPrivate.getExtensionsInfo(
+                { includeDisabled: true, includeTerminated: true },
+                resolve,
+              ),
+            );
+            return {
+              developerModeDisabled: toggle?.disabled,
+              developerModeChecked: toggle?.checked,
+              extensions: extensions.map((item) => ({
+                name: item.name,
+                state: item.state,
+                manifestErrors: item.manifestErrors,
+                runtimeErrors: item.runtimeErrors,
+              })),
+            };
           }),
         );
         throw e;
@@ -108,9 +123,9 @@ try {
     { timeout: 15000 },
   );
   let state = await send("STATE");
-  assert.equal(state.sessions[0].id, id);
+  assert.ok(state.sessions.find((s) => s.id === id));
   assert.ok(
-    state.sessions[0].transcript.length > 0,
+    state.sessions.find((s) => s.id === id).transcript.length > 0,
     "Content script must capture the visible transcript",
   );
   const result = await send("GENERATE", {
@@ -123,7 +138,7 @@ try {
   await send("GRAPH", { videoId: id }).catch(() => {}); // Invalid mocked graph must fail safely.
   await send("PIN", { videoId: id, pinned: true });
   state = await send("STATE");
-  assert.equal(state.sessions[0].pinned, true);
+  assert.equal(state.sessions.find((s) => s.id === id).pinned, true);
   // Smoke-test the production OCR module and local assets on an extension origin.
   const ocr = await panel.evaluate(async () => {
     const canvas = document.createElement("canvas");
@@ -148,6 +163,7 @@ try {
   state = await send("STATE");
   assert.equal(state.sessions.length, 0);
   assert.equal(state.nodes.length, 0);
+  await probeYouTube(context, panel, send);
   console.log(
     "Packaged MV3 checks passed: service worker, YouTube fixture ingestion, real IndexedDB, Groq mock/SAGE, pin/clear, local browser OCR.",
   );

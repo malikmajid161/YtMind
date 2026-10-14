@@ -1,0 +1,11 @@
+{
+  "date": "2026-10-13T20:07:53.746Z",
+  "scope": "Single public technical-video ingestion smoke probe; not a corpus benchmark",
+  "url": "https://www.youtube.com/watch?v=Tn6-PIqc4UM",
+  "videoId": "Tn6-PIqc4UM",
+  "captionSegments": 0,
+  "capturedFrames": 0,
+  "title": "React in 100 Seconds",
+  "captionStatus": "pending",
+  "status": "caption-source-unavailable-or-pending"
+}

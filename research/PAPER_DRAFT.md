@@ -34,7 +34,7 @@ Use at least 30 rights-appropriate real tutorials with annotated commands, code,
 
 ## 7. Limitations and research integrity
 
-The current results use authored fixtures and one stochastic provider run. Exact quote matching validates excerpt existence, not its interpretation. OCR is English-only and cannot guarantee symbols or diagrams. Lexical retrieval misses paraphrases. Comparison models in the final pilot share a family. The local packaged extension test was blocked by administrator-managed Developer mode; browser component tests are not a substitute for full runtime evidence. No claims of hallucination elimination, never-breaking software, universal novelty or market superiority are supported.
+The current results use authored fixtures and one stochastic provider run. Exact quote matching validates excerpt existence, not its interpretation. OCR is English-only and cannot guarantee symbols or diagrams. Lexical retrieval misses paraphrases. Comparison models in the final pilot share a family. The packaged extension smoke passed after a worker CSP correction; a live YouTube probe still returned zero caption segments. Controlled runtime checks do not establish live-source reliability. No claims of hallucination elimination, never-breaking software, universal novelty or market superiority are supported.
 
 ## 8. Availability
 

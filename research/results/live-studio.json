@@ -1,0 +1,113 @@
+{
+  "date": "2026-10-13T19:59:03.487Z",
+  "scope": "Real local browser app, real Groq HTTP/CORS, real local OCR, controlled hand-authored tutorial evidence",
+  "requests": [
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    }
+  ],
+  "requestBudget": 18,
+  "requestCount": 15,
+  "results": [
+    {
+      "module": "notes",
+      "status": "completed",
+      "characters": 1786
+    },
+    {
+      "module": "actions",
+      "status": "completed",
+      "characters": 309
+    },
+    {
+      "module": "Q&A",
+      "status": "completed",
+      "characters": 251
+    },
+    {
+      "module": "graph",
+      "status": "completed",
+      "nodeCount": 6
+    },
+    {
+      "module": "local OCR",
+      "status": "completed"
+    },
+    {
+      "module": "Evidence Lab",
+      "status": "completed",
+      "characters": 372
+    },
+    {
+      "module": "preflight",
+      "status": "completed"
+    },
+    {
+      "module": "research",
+      "status": "completed",
+      "characters": 4617
+    }
+  ],
+  "limitations": [
+    "Single controlled source",
+    "Workflow completion is not human-judged output accuracy",
+    "No competitor comparison"
+  ]
+}

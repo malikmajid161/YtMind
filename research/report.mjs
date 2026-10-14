@@ -86,7 +86,7 @@ The code error is material even though aggregate character error is low. Do not 
 
 ## What remains necessary for a paper
 
-Execute the [research protocol](PROTOCOL.md) on rights-appropriate real tutorials with human source annotations, frozen splits, real provider outputs, SAGE/Evidence Lab error analysis, playback/memory profiling, repeated trials and legitimate competitor comparisons. The local packaged-extension test is blocked by administrator-controlled Developer mode. Software unit/UI tests are separate engineering evidence.
+Execute the [research protocol](PROTOCOL.md) on rights-appropriate real tutorials with human source annotations, frozen splits, real provider outputs, SAGE/Evidence Lab error analysis, playback/memory profiling, repeated trials and legitimate competitor comparisons. The packaged-extension smoke now passes locally after correcting its worker CSP; live YouTube captions remain unresolved. Software unit/UI tests are separate engineering evidence.
 
 Raw data: [retrieval](results/retrieval-controlled.json), [OCR](results/ocr-controlled.json). The current results support a working pilot and expose failure modes; they do not establish universal uniqueness, hallucination elimination, or market superiority.
 `;

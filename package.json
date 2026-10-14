@@ -16,7 +16,8 @@
     "research:report": "node research/report.mjs",
     "research:live": "node research/run-live.mjs",
     "research:live-report": "node research/live-report.mjs",
-    "check:secrets": "node scripts/check-secrets.mjs"
+    "check:secrets": "node scripts/check-secrets.mjs",
+    "start": "node scripts/preview.mjs"
   },
   "dependencies": {
     "@tesseract.js-data/eng": "^1.0.0",

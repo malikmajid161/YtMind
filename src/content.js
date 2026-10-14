@@ -1,5 +1,8 @@
 import { TranscriptFetcher } from "./transcript.js";
 import { frameSignal, frameDifference } from "./core.js";
+try {
+  performance.setResourceTimingBufferSize(3000);
+} catch {}
 const id = () =>
   location.pathname === "/watch"
     ? (() => {
@@ -15,22 +18,32 @@ let current = null,
   lastPrint = null,
   busy = false,
   epoch = 0,
-  endedVideo = null;
+  endedVideo = null,
+  captionController = null;
 const send = async (m) => {
   const r = await chrome.runtime.sendMessage(m);
   if (r?.error) throw new Error(r.error);
   return r?.data;
 };
 async function captions(videoId, token) {
-  const result = await new TranscriptFetcher().fetch(videoId);
+  const result = await new TranscriptFetcher(captionController?.signal).fetch(
+    videoId,
+  );
   if (current !== videoId || epoch !== token) return;
-  await send({ type: "TRANSCRIPT", videoId, segments: result.transcript });
+  await send({
+    type: "TRANSCRIPT",
+    videoId,
+    segments: result.transcript,
+    source: result.source,
+  });
 }
 async function navigate(force = false) {
   const next = id();
   if (next === current && !force) return;
   current = next;
   const token = ++epoch;
+  captionController?.abort();
+  captionController = new AbortController();
   lease = 0;
   lastPrint = null;
   lastCapture = 0;
@@ -164,11 +177,12 @@ chrome.runtime.onMessage.addListener((m, sender, respond) => {
   }
 });
 document.addEventListener("yt-navigate-finish", () =>
-  navigate().catch(() => {}),
+  navigate(true).catch(() => {}),
 );
 document.addEventListener("yt-navigate-start", () => {
   lease = 0;
   ++epoch;
+  captionController?.abort();
 });
 setInterval(() => {
   if (!chrome.runtime?.id) return;

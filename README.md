@@ -66,3 +66,7 @@ Tests using mocked Groq responses establish routing and error behavior, not real
 The [controlled pilot](research/PILOT_RESULTS.md) and [real Groq pilot](research/LIVE_PILOT.md) preserve measured successes and failures. The [research protocol](research/PROTOCOL.md) targets English coding/technical tutorials; the [paper outline](research/PAPER_DRAFT.md) is explicitly preliminary. Neither these pilots nor unit tests establish competitor superiority.
 
 The build uses [Chrome's side-panel API](https://developer.chrome.com/docs/extensions/reference/api/sidePanel), [Groq chat completions](https://console.groq.com/docs/openai), and [Tesseract.js](https://github.com/naptha/tesseract.js). Configurable model IDs can be updated when provider availability changes.
+
+## Local browser workspace
+
+Run `npm run build` then `npm start` and open http://127.0.0.1:4173/panel.html?studio. Paste a transcript or upload timestamped frames to use the seven modules without installing the extension. Automatic YouTube capture uses the extension. See [CHECKPOINT.md](CHECKPOINT.md) for current verification, limitations and resume steps.
