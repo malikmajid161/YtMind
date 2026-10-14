@@ -1,3 +1,4 @@
+import { cleanOCRText } from "./ocr-quality.js";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import { time, defaults, combineParts } from "./core.js";
@@ -311,7 +312,7 @@ function render() {
         `<button class="secondary" data-code-zip="${output.id}">Download code files ZIP</button>`;
     html += studioMode
       ? `<label class="muted" for="frame-time">Frame timestamp in seconds</label><input id="frame-time" type="number" min="0" value="0"><div class="toolbar"><label class="secondary" for="frame-files">Add frame images<input id="frame-files" type="file" accept="image/*" multiple hidden ${!s ? "disabled" : ""}></label></div><p class="muted">Images are processed locally. Set their video time so citations point to the right moment.</p>`
-      : `<div class="toolbar"><button class="secondary" id="capture-toggle" ${!s ? "disabled" : ""}>${capture ? "Pause indexing" : "Start live indexing"}</button><button class="secondary" id="capture-once" ${!s ? "disabled" : ""}>Capture this moment</button></div><div class="status-line">${frames.filter((f) => f.status === "ready").length} / 100 frames indexed · ${capture ? "watching while this panel is open" : "capture paused"}</div><p class="muted">OCR reads visible text in the language selected in Settings. Visual-change filtering is a heuristic; periodic snapshots every minute and manual capture bypass it. Missing captions use tab-audio transcription after toolbar activation.</p>`;
+      : `<div class="toolbar"><button class="secondary" id="capture-toggle" ${!s ? "disabled" : ""}>${capture ? "Pause indexing" : "Start live indexing"}</button><button class="secondary" id="capture-once" ${!s ? "disabled" : ""}>Capture this moment</button></div><div class="status-line">${frames.filter((f) => f.status === "ready" && cleanOCRText(f.ocrText)).length} readable frames · ${frames.length} snapshots saved · ${capture ? "watching while this panel is open" : "capture paused"}</div><p class="muted">OCR reads visible text in the language selected in Settings. Visual-change filtering is a heuristic; periodic snapshots every minute and manual capture bypass it. Missing captions use tab-audio transcription after toolbar activation.</p>`;
     html += frames.length
       ? frames
           .slice()
@@ -417,15 +418,15 @@ function render() {
 }
 function frameOCRText(frame) {
   const accepted =
-    frame.status === "ready"
-      ? `<p class="frame-ocr-text" dir="auto">${esc(frame.ocrText)}</p>`
-      : frame.status === "no-text"
+    frame.status === "ready" && cleanOCRText(frame.ocrText)
+      ? `<p class="frame-ocr-text" dir="auto">${esc(cleanOCRText(frame.ocrText))}</p>`
+      : ["no-text", "ready"].includes(frame.status)
         ? '<p class="muted">No reliable text was accepted. The snapshot is saved.</p>'
         : frame.status === "failed"
           ? `<button class="text-button" data-retry-ocr="${esc(frame.id)}">Retry OCR</button>`
           : '<p class="muted">Waiting for local OCR…</p>';
   const uncertain = frame.uncertainLines?.length
-    ? `<p class="muted">${frame.uncertainLines.length} low-confidence line(s) excluded from automatic text evidence.</p>`
+    ? `<p class="muted">${frame.uncertainLines.length} uncertain line(s) excluded from automatic text evidence.</p>`
     : "";
   return (
     accepted +

@@ -1,3 +1,4 @@
+import { cleanOCRText } from "./ocr-quality.js";
 export const TTL = 24 * 60 * 60 * 1000;
 export const defaults = {
   apiKey: "",
@@ -59,9 +60,9 @@ export function chunks(session, frames = []) {
       kind: "caption",
     });
   for (const f of frames)
-    if (f.ocrText?.trim())
+    if (cleanOCRText(f.ocrText).trim())
       out.push({
-        text: f.ocrText,
+        text: cleanOCRText(f.ocrText),
         startTime: f.timestamp,
         kind: "frame",
         frameId: f.id,

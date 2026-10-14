@@ -34,3 +34,24 @@ test("accepted OCR preserves code whitespace and never rewrites uncertain words"
   assert.equal(weak.text, "");
   assert.equal(weak.rawText, "garbled words");
 });
+
+test("high-confidence isolated image fragments are rejected without losing captions or code", () => {
+  for (const text of [
+    ") a",
+    "| 4\n\\ hg |",
+    "« 4 / / A / / J 4",
+    "\\ A p THY 4",
+  ]) {
+    const result = assessOCR({ text, confidence: 90 });
+    assert.equal(result.text, "");
+    assert.equal(result.rawText, text);
+  }
+  assert.equal(
+    assessOCR({ text: "const count = 1;\n}", confidence: 90 }).text,
+    "const count = 1;\n}",
+  );
+  assert.equal(
+    assessOCR({ text: "یہ ایک کتاب ہے", confidence: 90 }).text,
+    "یہ ایک کتاب ہے",
+  );
+});

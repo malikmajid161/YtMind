@@ -162,3 +162,10 @@ Caption checkpoint regression results: 50/50 unit tests, build, browser UI integ
 - Native drawer, native panel and local workspace refresh on provisional/final output events. Cleared-data generation epoch guards apply to both early and final saves. Resume ignores unfinished drafts.
 - 69 unit tests pass, including gated delayed-comparison regression demonstrating early draft delivery before verification. Browser integration passes with mocked API. No measured live-provider speed percentage is claimed; network/rate limits, audio transcription, OCR and full-source batching can still take time.
 - Updated working app/dist directly, version 3.0.12; no ZIP created per user preference.
+
+## 2026-10-14 — v3.0.13 Reject fragmented OCR
+
+- Added a conservative text-shape filter alongside engine confidence. High-confidence isolated fragments from the user's report are excluded from evidence; raw OCR remains stored. Retains readable English/Urdu and recognizable code statements, including delimiters within code context. This heuristic can reject very short legitimate labels and does not guarantee semantic OCR accuracy.
+- Existing frame OCR is filtered when forming evidence and rendering text, so saved fragments no longer automatically contaminate new answers. Counts distinguish readable frames from snapshots saved; no-text is normal for footage without readable text, not a caption failure.
+- Fixed corrupted extension display name to ASCII wording. Source and working dist manifest 3.0.13; reported Chrome version 3.0.11 requires extension Reload to take effect.
+- 70 unit tests pass, including high-confidence garbage regression. Working dist rebuilt directly; no ZIP.
