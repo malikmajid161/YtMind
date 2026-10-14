@@ -127,6 +127,11 @@ try {
     )
     .toBe(true);
   const panel = await context.newPage();
+  const cspFailures = [];
+  panel.on("console", (message) => {
+    if (/Content Security Policy|violates.*connect-src/i.test(message.text()))
+      cspFailures.push("OCR loader triggered a CSP violation");
+  });
   await panel.goto(`chrome-extension://${extensionId}/panel.html`);
   const send = (type, fields = {}) =>
     panel.evaluate(
@@ -189,6 +194,15 @@ try {
   });
   assert.match(ocr.text, /REACT\s+STATE\s+123/i);
   assert.ok(ocr.confidence > 50);
+  assert.deepEqual(cspFailures, []);
+  assert.equal(
+    await panel.evaluate(async () =>
+      (await fetch(chrome.runtime.getURL("ocr/tesseract-core-simd-lstm.js")))
+        .text()
+        .then((s) => s.includes("data:application/octet-stream;base64,AGFzb")),
+    ),
+    false,
+  );
   const keyResult = await panel.evaluate(() =>
     chrome.storage.local.get("settings"),
   );

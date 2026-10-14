@@ -75,3 +75,11 @@ Caption checkpoint regression results: 50/50 unit tests, build, browser UI integ
 - Offscreen audio startup waits for its message handler rather than failing on a creation race.
 - 59 unit tests and browser/packaged-extension checks passed. Full-audio workflow on user video FhMFEq6_G-k returned four HTTP 200 responses and notes in 32,804 ms. This is a local companion/browser workflow, not a native live tab capture success or a human accuracy evaluation.
 - Header and manifest now show 3.0.1 so user can distinguish stale loaded code. Local dist rebuilt. Previous saved notes remain historical outputs and should be regenerated to use corrected parsing/citations.
+
+## OCR CSP correction — v3.0.2, 14 October 2026
+
+- User reported a blocked connect-src data:application/octet-stream WebAssembly request. Tesseract's embedded .wasm.js loader attempted a data URL fetch.
+- Switched to plain packaged .js loaders and external same-origin .wasm binaries. Uses wasm-feature-detect SIMD selection with a portable LSTM fallback; no connect-src/script-src/worker-src relaxation.
+- Added direct pinned detector dependency and bundled Apache license. Build excludes embedded .wasm.js variants.
+- 59 core tests passed. Packaged extension OCR passed with a CSP-error assertion and a check that its selected loader contains no embedded WASM payload. English suite: 7/8 exact, two workers passed, zero external requests. Clean Urdu fixture: exact, confidence 91, zero external requests.
+- Manifest/header version 3.0.2; reload loaded extension once to activate this fix. This fixes the OCR loading error; it does not establish captionless native-audio accuracy.

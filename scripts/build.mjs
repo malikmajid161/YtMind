@@ -30,7 +30,7 @@ await cp(
   "dist/ocr/worker.min.js",
 );
 for (const file of await readdir("node_modules/tesseract.js-core")) {
-  if (/\.wasm(?:\.js)?$/.test(file))
+  if (/^tesseract-core(?:-simd)?(?:-lstm)?\.(?:js|wasm)$/.test(file))
     await cp(
       path.join("node_modules/tesseract.js-core", file),
       path.join("dist/ocr", file),
