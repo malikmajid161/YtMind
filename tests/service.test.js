@@ -197,3 +197,54 @@ test("Ask uses captured foreign-language context even when English keywords do n
     globalThis.fetch = oldFetch;
   }
 });
+
+test("Roman Urdu questions retain source context and speaking notes process the captured source", async () => {
+  const [service] = services();
+  await service.dispatch({
+    type: "SESSION",
+    videoId: "abcdefghijk",
+    title: "Setup lesson",
+  });
+  await service.dispatch({
+    type: "IMPORT",
+    videoId: "abcdefghijk",
+    text: "Install Node.js. Run npm install.",
+  });
+  const previousFetch = globalThis.fetch;
+  const requests = [];
+  globalThis.fetch = async (_, options) => {
+    requests.push(JSON.parse(options.body));
+    return Response.json({
+      choices: [
+        { message: { content: "Install Node.js and run npm install. [E1]" } },
+      ],
+    });
+  };
+  try {
+    const answer = await service.dispatch({
+      type: "GENERATE",
+      mode: "chat",
+      videoId: "abcdefghijk",
+      query: "is ko shuru kesay karna hai?",
+    });
+    assert.ok(answer.evidence.length);
+    assert.match(requests[0].messages[0].content, /Roman Urdu/);
+    assert.match(requests[0].messages[1].content, /is ko shuru kesay/);
+    const notes = await service.dispatch({
+      type: "GENERATE",
+      mode: "speaking",
+      videoId: "abcdefghijk",
+    });
+    assert.equal(notes.mode, "speaking");
+    assert.equal(notes.coverage.selected, notes.coverage.total);
+    assert.match(requests.at(-1).messages[1].content, /natural script/);
+    const state = await service.dispatch({ type: "STATE" });
+    assert.equal(
+      state.sessions[0].outputs.filter((output) => output.mode === "speaking")
+        .length,
+      1,
+    );
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
+});

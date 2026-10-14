@@ -551,7 +551,9 @@ export function createService({
         )
       ).flat();
       const deep =
-        config.deep && ["notes", "actions"].includes(m.mode) && !m.auto;
+        config.deep &&
+        ["notes", "actions", "speaking"].includes(m.mode) &&
+        !m.auto;
       const jobId = deep ? String(m.jobId || crypto.randomUUID()) : null;
       if (deep) {
         const s = sessions[0];

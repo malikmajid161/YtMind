@@ -108,7 +108,7 @@ try {
   });
   await expect(watch.locator("#ytmind-launch")).toHaveAttribute(
     "data-ytmind-version",
-    "3.0.16",
+    "3.0.19",
     { timeout: 5000 },
   );
   assert.ok(
@@ -122,6 +122,33 @@ try {
   await watch.locator("#ytmind-launch").click();
   const embedded = watch.frameLocator("#ytmind-drawer iframe");
   await embedded.locator(".tabs").waitFor();
+  const initialDrawer = await watch.locator("#ytmind-drawer").boundingBox();
+  const dragEdge = await watch.locator("#ytmind-resize").boundingBox();
+  await watch.mouse.move(dragEdge.x + 4, dragEdge.y + 30);
+  await watch.mouse.down();
+  await watch.mouse.move(dragEdge.x - 100, dragEdge.y + 30);
+  await watch.mouse.up();
+  const widenedDrawer = await watch.locator("#ytmind-drawer").boundingBox();
+  assert.ok(widenedDrawer.width > initialDrawer.width + 80);
+  await watch
+    .getByRole("button", { name: "Expand workspace", exact: true })
+    .click();
+  assert.ok(
+    (await watch.locator("#ytmind-drawer").boundingBox()).width >
+      widenedDrawer.width,
+  );
+  await watch
+    .getByRole("button", { name: "Restore workspace width", exact: true })
+    .click();
+  await watch.locator("#ytmind-resize").press("Home");
+  assert.ok((await watch.locator("#ytmind-drawer").boundingBox()).width <= 322);
+  await watch.setViewportSize({ width: 320, height: 700 });
+  await watch.waitForTimeout(100);
+  const compact = await watch.locator("#ytmind-drawer").boundingBox();
+  assert.ok(compact.x >= 0 && compact.x + compact.width <= 320);
+  await watch.screenshot({ path: "artifacts/drawer-responsive-320.png" });
+  await watch.setViewportSize({ width: 1100, height: 850 });
+
   await watch.screenshot({ path: "artifacts/drawer-rounded.png" });
   await embedded
     .getByText("Controlled React Tutorial", { exact: true })

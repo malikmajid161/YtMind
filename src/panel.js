@@ -1,3 +1,5 @@
+if (new URLSearchParams(location.search).has("embedded"))
+  document.documentElement.classList.add("embedded");
 import { cleanOCRText } from "./ocr-quality.js";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
@@ -19,6 +21,8 @@ const esc = (s) =>
         c
       ],
   );
+let speechEpoch = 0;
+window.addEventListener("pagehide", () => window.speechSynthesis?.cancel());
 let state = { sessions: [], nodes: [], edges: [], settings: defaults },
   videoId = null,
   tabId = null,
@@ -259,10 +263,17 @@ function render() {
   const s = session();
   if (["notes", "actions"].includes(active)) {
     html += `<button class="primary" data-generate="${active}" ${!s || requestBusy ? "disabled" : ""}>${active === "notes" ? "Generate study notes" : "Extract action steps"}<span>↗</span></button>`;
+    if (active === "notes")
+      html += `<button class="secondary" data-generate="speaking" ${!s || requestBusy ? "disabled" : ""}>Generate speaking notes</button>`;
     if (requestBusy)
       html +=
         '<button class="text-button" id="pause-generation">Pause after this section</button>';
-    const last = s?.outputs?.filter((o) => o.mode === active).at(-1);
+    const last = s?.outputs
+      ?.filter(
+        (o) =>
+          o.mode === active || (active === "notes" && o.mode === "speaking"),
+      )
+      .at(-1);
     const output = last?.jobId
       ? combineParts(s.outputs.filter((o) => o.jobId === last.jobId))
       : last;
@@ -271,7 +282,7 @@ function render() {
       (output.completedParts || output.batchIndex + 1) < output.totalBatches &&
       !requestBusy
     )
-      html += `<button class="text-button" data-resume="${esc(output.jobId)}" data-mode="${active}">Continue remaining sections (${output.completedParts || output.batchIndex + 1}/${output.totalBatches} done)</button>`;
+      html += `<button class="text-button" data-resume="${esc(output.jobId)}" data-mode="${output.mode}">Continue remaining sections (${output.completedParts || output.batchIndex + 1}/${output.totalBatches} done)</button>`;
     html += output
       ? coverageHTML(output) + outputHTML(output)
       : empty(
@@ -495,14 +506,14 @@ const badgeLabels = {
 };
 function outputHTML(o) {
   const v = o.verification || { status: "unchecked", claims: [] };
-  return `<article class="result" data-output="${esc(o.id)}"><div class="result-head"><span class="eyebrow">${o.mode === "notes" ? "YOUR STUDY NOTES" : o.mode === "actions" ? "YOUR ACTION PLAN" : o.generalKnowledge ? "VIDEO + GENERAL KNOWLEDGE" : "FROM YOUR SOURCES"}</span><span class="badge ${esc(v.status)}">${o.processing ? "Checking support�" : o.generalKnowledge ? "Includes general knowledge" : badgeLabels[v.status] || "Unchecked"}</span></div><h3 class="result-source-title">${esc(o.mode === "research" ? "Multi-video research" : o.evidence[0]?.title || "Source notes")}</h3><div class="markdown" dir="auto">${markdown(o.answer, o.evidence)}</div><div class="sources"><div class="eyebrow">BACK TO THE SOURCE · ${o.evidence.length} MOMENTS</div>${o.evidence
+  return `<article class="result" data-output="${esc(o.id)}"><div class="result-head"><span class="eyebrow">${o.mode === "speaking" ? "YOUR SPEAKING NOTES" : o.mode === "notes" ? "YOUR STUDY NOTES" : o.mode === "actions" ? "YOUR ACTION PLAN" : o.generalKnowledge ? "VIDEO + GENERAL KNOWLEDGE" : "FROM YOUR SOURCES"}</span><span class="badge ${esc(v.status)}">${o.processing ? "Checking support�" : o.generalKnowledge ? "Includes general knowledge" : badgeLabels[v.status] || "Unchecked"}</span></div><h3 class="result-source-title">${esc(o.mode === "research" ? "Multi-video research" : o.evidence[0]?.title || "Source notes")}</h3><div class="markdown" dir="auto">${markdown(o.answer, o.evidence)}</div><div class="sources"><div class="eyebrow">BACK TO THE SOURCE · ${o.evidence.length} MOMENTS</div>${o.evidence
     .map(
       (e, i) =>
         `<div class="source-proof"><button class="source-link" data-seek="${e.startTime}" data-video="${esc(e.videoId)}"><span>E${i + 1} · ${esc(e.title)}<small>${esc(e.kind)} ${session()?.captionStatus === "manual" ? "· manually supplied" : ""}</small></span><span class="stamp">${time(e.startTime)} ↗</span></button><a class="print-source-link" href="https://www.youtube.com/watch?v=${encodeURIComponent(e.videoId)}&t=${Math.floor(e.startTime)}s">https://www.youtube.com/watch?v=${esc(e.videoId)}&amp;t=${Math.floor(e.startTime)}s</a><details><summary>Proof view · read stored excerpt</summary><pre>${esc(e.text)}</pre></details></div>`,
     )
     .join(
       "",
-    )}</div><details class="verification"><summary>SAGE · inspect source support</summary><p class="muted">${esc(v.reason || "Model-based support check. It can miss errors; inspect the cited evidence.")}</p><p class="muted">Source support is not a guarantee of factual truth. Agreement between models is not proof.</p>${(v.claims || []).map((c) => `<div class="claim">${esc(c.text)}<small>${esc(c.verdict)} · evidence ${(c.refs || []).join(", ") || "none"}</small></div>`).join("")}</details>${v.status === "conflicting" && o.alternative ? `<details open><summary>Independent answer · compare both versions</summary><div class="markdown">${markdown(o.alternative, o.evidence)}</div></details>` : ""}<div class="toolbar"><button class="secondary" data-copy="${o.id}">Copy</button><button class="secondary" data-export="${o.id}">Download .md</button><button class="secondary" data-pdf="${o.id}">Save as PDF</button></div></article>`;
+    )}</div><details class="verification"><summary>SAGE · inspect source support</summary><p class="muted">${esc(v.reason || "Model-based support check. It can miss errors; inspect the cited evidence.")}</p><p class="muted">Source support is not a guarantee of factual truth. Agreement between models is not proof.</p>${(v.claims || []).map((c) => `<div class="claim">${esc(c.text)}<small>${esc(c.verdict)} · evidence ${(c.refs || []).join(", ") || "none"}</small></div>`).join("")}</details>${v.status === "conflicting" && o.alternative ? `<details open><summary>Independent answer · compare both versions</summary><div class="markdown">${markdown(o.alternative, o.evidence)}</div></details>` : ""}<div class="toolbar"><button class="secondary" data-speak="${o.id}">Read aloud</button><button class="text-button" data-stop-speaking="true">Stop audio</button><button class="secondary" data-copy="${o.id}">Copy</button><button class="secondary" data-export="${o.id}">Download .md</button><button class="secondary" data-pdf="${o.id}">Save as PDF</button></div></article>`;
 }
 function drawGraph(query = "") {
   const nodes = state.nodes
@@ -751,6 +762,49 @@ document.addEventListener("click", async (e) => {
     if (b.dataset.retryOcr) {
       await api("OCR_RETRY", { id: b.dataset.retryOcr });
       await refresh(true);
+      return;
+    }
+    if (b.dataset.stopSpeaking) {
+      window.speechSynthesis?.cancel();
+      speechEpoch++;
+      return;
+    }
+    if (b.dataset.speak) {
+      if (!window.speechSynthesis) {
+        notice("Read aloud is not available in this browser.", true);
+        return;
+      }
+      const output = findOutput(b.dataset.speak);
+      const container = document.createElement("div");
+      container.innerHTML = markdown(output.answer, output.evidence);
+      container
+        .querySelectorAll("pre, code, .citation")
+        .forEach((node) => node.remove());
+      const passages =
+        (container.textContent || "").match(/.{1,450}(?:\s|$)/g) || [];
+      window.speechSynthesis.cancel();
+      const token = ++speechEpoch;
+      let index = 0;
+      const speakNext = () => {
+        if (token !== speechEpoch || index >= passages.length) return;
+        const utterance = new SpeechSynthesisUtterance(passages[index++]);
+        utterance.lang = "en-US";
+        utterance.voice =
+          window.speechSynthesis
+            .getVoices()
+            .find((voice) => voice.lang.startsWith("en")) || null;
+        utterance.onend = speakNext;
+        utterance.onerror = () => {
+          if (token === speechEpoch)
+            notice(
+              "Speech playback stopped. Check browser audio or retry.",
+              true,
+            );
+        };
+        window.speechSynthesis.speak(utterance);
+      };
+      speakNext();
+      notice("Reading the English notes aloud using your browser's voice.");
       return;
     }
     if (b.dataset.copy) {

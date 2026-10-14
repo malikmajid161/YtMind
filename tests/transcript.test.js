@@ -178,3 +178,33 @@ test("unchanged previous-video transcript DOM is rejected after SPA navigation",
     globalThis.document = previousDocument;
   }
 });
+
+test("automatically opened transcript panel closes even when reading is aborted", async () => {
+  const previous = globalThis.document;
+  let closed = 0;
+  globalThis.document = {
+    querySelector: (selector) =>
+      selector.includes("visibility-button")
+        ? {
+            click() {
+              closed++;
+            },
+          }
+        : selector.includes("target-id")
+          ? null
+          : { click() {} },
+    querySelectorAll: () => [],
+  };
+  const parser = new TranscriptFetcher();
+  parser._visibleTranscript = () => [];
+  let waits = 0;
+  parser._sleep = async () => {
+    if (++waits > 1) throw new Error("aborted");
+  };
+  try {
+    await assert.rejects(parser._viaDomPanel("abcdefghijk"), /aborted/);
+    assert.equal(closed, 1);
+  } finally {
+    globalThis.document = previous;
+  }
+});

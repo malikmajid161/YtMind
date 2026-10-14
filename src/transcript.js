@@ -382,35 +382,42 @@ export class TranscriptFetcher {
           ),
       );
     if (!btn) throw new Error('"Show transcript" button not found');
-    btn.click();
-
-    for (let i = 0; i < 40; i++) {
-      // wait up to ~12s
-      await this._sleep(300);
-      segments = readSegments();
-      if (
-        segments.length &&
-        (this._allowExistingDom || JSON.stringify(segments) !== previousText)
-      ) {
-        await this._sleep(500); // let the rest render
+    const panelSelector =
+      'ytd-engagement-panel-section-list-renderer[target-id*="transcript"]';
+    const existingPanel = document.querySelector(panelSelector);
+    const wasOpen =
+      existingPanel?.getAttribute?.("visibility") ===
+      "ENGAGEMENT_PANEL_VISIBILITY_EXPANDED";
+    try {
+      btn.click();
+      for (let i = 0; i < 40; i++) {
+        await this._sleep(300);
         segments = readSegments();
-        break;
+        if (
+          segments.length &&
+          (this._allowExistingDom || JSON.stringify(segments) !== previousText)
+        ) {
+          await this._sleep(500);
+          segments = readSegments();
+          break;
+        }
       }
-    }
-
-    document
-      .querySelector(
-        'ytd-engagement-panel-section-list-renderer[target-id*="transcript"] #visibility-button button',
+      if (
+        !segments.length ||
+        (!this._allowExistingDom && JSON.stringify(segments) === previousText)
       )
-      ?.click();
-    if (
-      !segments.length ||
-      (!this._allowExistingDom && JSON.stringify(segments) === previousText)
-    )
-      throw new Error(
-        "Transcript panel still contains an unverified previous-video source",
-      );
-    return segments;
+        throw new Error(
+          "Transcript panel still contains an unverified previous-video source",
+        );
+      return segments;
+    } finally {
+      if (!wasOpen)
+        document
+          .querySelector(
+            `${panelSelector} #visibility-button button, ${panelSelector} button[aria-label="Close"]`,
+          )
+          ?.click();
+    }
   }
 
   // ── Helpers ───────────────────────────────────────────────

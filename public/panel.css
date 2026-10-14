@@ -986,3 +986,27 @@ label small {
   border: 1px solid var(--border, #d7ddd1);
   border-radius: 16px;
 }
+
+/* Reserve room for the embedded drawer's close and expand controls. */
+@media (max-width: 520px) {
+  .embedded .version {
+    display: none;
+  }
+}
+@media (max-width: 360px) {
+  .embedded .brand {
+    font-size: 18px;
+    gap: 6px;
+  }
+  .embedded .brand-icon {
+    font-size: 24px;
+  }
+}
+html,
+body {
+  max-width: 100%;
+}
+.video-title,
+.result-source-title {
+  overflow-wrap: anywhere;
+}

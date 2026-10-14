@@ -63,13 +63,13 @@ function ensureLauncher() {
   const host = document.fullscreenElement || document.body;
   if (!host) return;
   const existing = document.getElementById("ytmind-launch");
-  if (existing && existing.dataset.ytmindVersion === "3.0.16") {
+  if (existing && existing.dataset.ytmindVersion === "3.0.19") {
     if (existing.parentElement !== host) host.append(existing);
     return;
   }
   existing?.remove();
   const button = document.createElement("button");
-  button.dataset.ytmindVersion = "3.0.16";
+  button.dataset.ytmindVersion = "3.0.19";
   button.id = "ytmind-launch";
   button.textContent = "🧠 YTMind";
   button.title = "Open your video study workspace";
@@ -93,7 +93,8 @@ function ensureLauncher() {
   button.onclick = () => {
     const existing = document.getElementById("ytmind-drawer");
     if (existing) {
-      existing.remove();
+      if (existing.ytmindClose) existing.ytmindClose();
+      else existing.remove();
       button.textContent = "🧠 YTMind";
       return;
     }
@@ -114,6 +115,119 @@ function ensureLauncher() {
       display: "flex",
       flexDirection: "column",
     });
+    let preferredWidth = 460;
+    let expanded = false;
+    const maximum = () => Math.max(1, window.innerWidth - 24);
+    const applyWidth = () => {
+      const width = Math.min(
+        maximum(),
+        expanded
+          ? maximum()
+          : Math.max(Math.min(320, maximum()), preferredWidth),
+      );
+      drawer.style.width = `${width}px`;
+      resize.setAttribute("aria-valuenow", String(Math.round(width)));
+      resize.setAttribute("aria-valuemin", String(Math.min(320, maximum())));
+      resize.setAttribute("aria-valuemax", String(maximum()));
+    };
+    const resize = document.createElement("div");
+    resize.id = "ytmind-resize";
+    resize.setAttribute("role", "separator");
+    resize.setAttribute("aria-label", "Resize YTMind workspace");
+    resize.setAttribute("aria-orientation", "vertical");
+    resize.tabIndex = 0;
+    resize.title = "Drag to resize · arrow keys adjust width";
+    Object.assign(resize.style, {
+      position: "absolute",
+      left: "0",
+      top: "80px",
+      bottom: "20px",
+      width: "10px",
+      cursor: "ew-resize",
+      touchAction: "none",
+      zIndex: "2",
+    });
+    resize.onpointerdown = (event) => {
+      resize.setPointerCapture(event.pointerId);
+      event.preventDefault();
+    };
+    resize.onpointermove = (event) => {
+      if (!resize.hasPointerCapture(event.pointerId)) return;
+      expanded = false;
+      preferredWidth = Math.max(
+        320,
+        Math.min(maximum(), window.innerWidth - 12 - event.clientX),
+      );
+      applyWidth();
+    };
+    const saveWidth = () =>
+      chrome.storage.local.set({ drawerWidth: preferredWidth }).catch(() => {});
+    resize.onpointerup = (event) => {
+      resize.releasePointerCapture(event.pointerId);
+      saveWidth();
+    };
+    resize.onkeydown = (event) => {
+      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key))
+        return;
+      event.preventDefault();
+      expanded = false;
+      preferredWidth =
+        event.key === "Home"
+          ? 320
+          : event.key === "End"
+            ? maximum()
+            : preferredWidth + (event.key === "ArrowLeft" ? 40 : -40);
+      preferredWidth = Math.max(320, Math.min(maximum(), preferredWidth));
+      applyWidth();
+      saveWidth();
+    };
+    const expand = document.createElement("button");
+    expand.textContent = "↔";
+    expand.setAttribute("aria-label", "Expand workspace");
+    expand.title = "Expand / restore workspace";
+    Object.assign(expand.style, {
+      position: "absolute",
+      top: "22px",
+      right: "118px",
+      width: "34px",
+      height: "34px",
+      padding: "0",
+      zIndex: "1",
+      borderRadius: "50%",
+      border: "1px solid #dfe4d8",
+      background: "#f7f8f2",
+      color: "#203327",
+      cursor: "pointer",
+      font: "20px system-ui",
+    });
+    expand.onclick = () => {
+      expanded = !expanded;
+      expand.setAttribute(
+        "aria-label",
+        expanded ? "Restore workspace width" : "Expand workspace",
+      );
+      applyWidth();
+    };
+    const resizeEvents = new AbortController();
+    window.addEventListener("resize", applyWidth, {
+      signal: resizeEvents.signal,
+    });
+    drawer.ytmindClose = () => {
+      resizeEvents.abort();
+      captionController?.abort();
+      captionController = new AbortController();
+      ++epoch;
+      drawer.remove();
+    };
+    applyWidth();
+    chrome.storage.local
+      .get("drawerWidth")
+      .then((value) => {
+        if (Number.isFinite(value.drawerWidth))
+          preferredWidth = value.drawerWidth;
+        applyWidth();
+      })
+      .catch(() => {});
     const close = document.createElement("button");
     close.textContent = "×";
     close.title = "Close YTMind";
@@ -134,7 +248,7 @@ function ensureLauncher() {
       font: "400 22px system-ui",
     });
     close.onclick = () => {
-      drawer.remove();
+      drawer.ytmindClose();
       button.textContent = "🧠 YTMind";
     };
     const frame = document.createElement("iframe");
@@ -146,7 +260,7 @@ function ensureLauncher() {
       minHeight: "0",
       border: "0",
     });
-    drawer.append(close, frame);
+    drawer.append(resize, expand, close, frame);
     document.body.append(drawer);
     button.textContent = "🧠 YTMind";
   };
