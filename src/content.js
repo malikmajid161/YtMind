@@ -63,13 +63,13 @@ function ensureLauncher() {
   const host = document.fullscreenElement || document.body;
   if (!host) return;
   const existing = document.getElementById("ytmind-launch");
-  if (existing && existing.dataset.ytmindVersion === "3.0.15") {
+  if (existing && existing.dataset.ytmindVersion === "3.0.16") {
     if (existing.parentElement !== host) host.append(existing);
     return;
   }
   existing?.remove();
   const button = document.createElement("button");
-  button.dataset.ytmindVersion = "3.0.15";
+  button.dataset.ytmindVersion = "3.0.16";
   button.id = "ytmind-launch";
   button.textContent = "🧠 YTMind";
   button.title = "Open your video study workspace";

@@ -181,3 +181,9 @@ Caption checkpoint regression results: 50/50 unit tests, build, browser UI integ
 
 - Removed large green Close YTMind strip. Drawer uses rounded 20px corners, 12px outer spacing, original paper background inside, and a small circular close control beside settings. Existing internal panel design unchanged.
 - Native drawer integration passes; saved screenshot visually inspected for header alignment and corner appearance. Updated working dist directly; no ZIP.
+
+## 2026-10-14 — v3.0.16 Enforce English generated prose
+
+- Supplied report was English prose containing untranslated Hindi quotations in concepts/actions. Added post-generation script check for Hindi/Urdu prose; a conditional API rewrite translates those passages before publishing/saving answers. Already-English output incurs no extra request. Source proof text and source code remain unchanged.
+- Primary/independent answers and related knowledge supplement use the gate. If rewrite still includes untranslated script, fail explicitly rather than save it silently. This is language enforcement, not a claim of measured translation accuracy.
+- 73 unit tests pass, including untranslated quotation, English no-extra-call, code preservation and failed rewrite regression. Working dist updated to 3.0.16; no ZIP. Existing saved reports require regeneration and are not automatically rewritten.
