@@ -1,41 +1,25 @@
 # Validation record
 
-Updated 14 October 2026. Executed results are distinguished from unmeasured claims.
+Updated 14 October 2026. Software tests, real provider integration and output accuracy are distinct kinds of evidence.
 
-| Check                   | Result                                                     | Evidence scope                                                                                                               |
-| ----------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Core tests              | 35 passed                                                  | Retention, source/version identity, chunking, citation variants, key boundary, stale writes, provider failures, quote checks |
-| Unpacked build          | Passed                                                     | Reproducible source, manifest and local OCR assets                                                                           |
-| Browser UI              | Passed                                                     | Seven tabs, graph search, proof view, settings and 320px layout; no page errors                                              |
-| Local OCR               | 7/8 exact; two-worker smoke passed; zero external requests | Synthetic English canvas images under comparable CSP                                                                         |
-| Packaged extension      | Locally passed                                             | Controlled native smoke passed after worker CSP fix; live captions remain unresolved                                         |
-| Retrieval               | BM25 27/32 top-1; v1 26/32, with higher recall@3           | Controlled authored excerpts; no reliable superiority claim                                                                  |
-| Real Groq pilot         | 8/8 executed; one expected-label mismatch                  | Real requests on synthetic evidence, not human factual-accuracy scores                                                       |
-| Live videos/competitors | Not benchmarked                                            | Representative live capture and competitor comparisons remain                                                                |
+| Check                               | Result                                          | Scope                                                                                                                                                                                             |
+| ----------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Core tests                          | 59 passing                                      | Source retention, clears/races, timestamps, code literal matching, citation auditing, retry policy, batch resume and local endpoint boundaries                                                    |
+| Browser integration                 | Passed                                          | Seven tabs; real IndexedDB and OCR; subtitle/audio review; code ZIP; lecture-batch ZIP; graph, proof view, responsive layout and PDF rendering. Provider responses mocked for deterministic tests |
+| Packaged MV3                        | Passed after caption handling changes           | Service worker, content ingestion, key boundary, storage, OCR and offscreen lifecycle; provider mocked                                                                                            |
+| Native toolbar/audio gesture        | Not exercised successfully                      | Headless shortcut did not fire action callback; zero audio requests. Failure retained, not counted as success                                                                                     |
+| Authored speech → real Groq → notes | Passed                                          | Four timestamped speech segments; four expected keywords; two HTTP 200 calls                                                                                                                      |
+| User's Urdu Art Track               | Timestamped Urdu source returned                | Full 396-second audio; 29 nonempty segments; 8.4-second transcription observation; no human word-accuracy reference                                                                               |
+| Paste link → source → notes/SAGE    | Passed                                          | Same Art Track; four HTTP 200 calls; about 23.5 seconds; verdict Needs a closer look                                                                                                              |
+| Automatic code extraction/export    | Passed                                          | One authored JavaScript canvas, actual local OCR and Groq, exact source code match and downloadable ZIP                                                                                           |
+| Five-source real lecture batch      | Completed                                       | Five authored excerpts, not five full videos. Quota failures retained; bounded-retry run still had one unchecked SAGE result                                                                      |
+| Urdu OCR                            | 1/1 exact authored phrase; 91 engine confidence | One clean canvas fixture; zero external requests; not decorative Urdu artwork accuracy                                                                                                            |
+| English OCR                         | 7/8 exact                                       | Synthetic fixture suite; one code-symbol error                                                                                                                                                    |
+| Retrieval                           | BM25 27/32 top-1; v1 26/32                      | Authored fixtures; v1 higher recall@3; paired p=1.0, no reliable superiority                                                                                                                      |
+| Production dependencies             | Zero vulnerabilities reported                   | npm audit --omit=dev at this session                                                                                                                                                              |
 
-OCR misread useState(0) as useState(®). Retrieval challenge cases expose paraphrase failures. SAGE labeled an unsupported flag conflicting rather than uncertain. Initial model-404 and verifier-429 failures remain in the record. Current defaults were updated after account discovery; model availability does not guarantee quota.
+Raw observations are in research/results. Full copyrighted audio/lyrics and provider raw transcript responses are confined to ignored local artifacts. Keys remain in ignored local configuration and browser storage.
 
-See research/PILOT_RESULTS.md, research/LIVE_PILOT.md and raw JSON results. These are pilot observations, not publication-ready evidence.
+All real user flows call Groq using the configured key. Design preview is explicitly selected with ?preview; the normal browser URL opens the working app. Unit mocks establish engineering behavior and never replace production responses.
 
-## Repeat checks
-
-```sh
-npm ci
-npm run check
-npx playwright install chromium
-npm run test:ui
-npm run test:ocr
-npm run test:extension
-npm run research:retrieval
-npm run research:report
-npm run research:live
-npm run research:live-report
-```
-
-Real provider tests need an ignored .env.local key. Browser checks may need approved execution outside the sandbox. TEST_BROWSER_EXE can choose an installed browser for UI/OCR. Full extension testing requires policy permitting unpacked extensions; do not bypass administrator policy. CI runs the packaged checks on an isolated runner and preserves artifacts.
-
-## Reliability and release discipline
-
-YouTube DOM/endpoints, provider models/quotas, storage and scheduling change. No never-break guarantee is made. Relevant behavior checks, reproducible builds, honest runtime records and recoverable failures are release gates. Failed verification stays unchecked; partial deep output stays visibly partial; in-flight results cannot resurrect cleared data. Keys are ignored locally and checked against tracked files before committing.
-
-Publication still requires a held-out real tutorial corpus, independent human annotation, repeated model trials, memory/playback profiling and legitimate competitor comparisons. The paper outline preserves those gaps.
+Desktop toolbar activation, held-out real tutorial accuracy, human annotation, speaker diarization, general diagram understanding and broad competitor superiority remain unverified. The paper is preliminary.

@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-14T07:53:13.059Z",
+  "videoId": "FhMFEq6_G-k",
+  "scope": "Real paste-link-to-audio-to-Urdu-transcript-to-notes integration on a user-specified public video. No human accuracy reference; no lyrics in tracked results.",
+  "requests": [
+    {
+      "status": 200,
+      "path": "/openai/v1/audio/transcriptions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    }
+  ],
+  "elapsedMs": 32804,
+  "noteCharacters": 1895,
+  "verificationLabel": "Needs a closer look",
+  "status": "passed"
+}

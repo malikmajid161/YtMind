@@ -10,7 +10,7 @@
     <header class="topbar">
       <a class="brand" href="#notes" aria-label="YTMind home"
         ><span class="brand-icon">✳</span>ytmind<span class="version"
-          >/ 03</span
+          >/ 03.0.1</span
         ></a
       ><button class="icon-button" id="settings-open" aria-label="Settings">
         ⚙
@@ -43,6 +43,21 @@
           /><button class="primary" type="submit">
             Open learning workspace<span>↗</span>
           </button>
+          <label
+            >Audio language<select id="link-audio-language">
+              <option value="">Auto-detect</option>
+              <option value="en">English</option>
+              <option value="ur">Urdu</option>
+            </select></label
+          >
+          <label class="toggle"
+            ><input id="link-auto-ingest" type="checkbox" checked /><span
+              >Fetch audio and generate notes automatically<small
+                >Sends this video's audio and transcript to Groq. Requires the
+                local media helper.</small
+              ></span
+            ></label
+          >
         </form>
         <p class="muted">
           Paste a transcript or upload readable frames. Automatic YouTube
@@ -160,6 +175,26 @@
             uploads images.</small
           ></label
         >
+        <label
+          >Frame text language<select id="ocr-language">
+            <option value="eng">English</option>
+            <option value="urd">Urdu</option>
+            <option value="eng+urd">English + Urdu</option></select
+          ><small
+            >Language models run locally. Decorative Urdu lettering may require
+            manual correction.</small
+          ></label
+        >
+        <label
+          >Live audio language<select id="live-audio-language">
+            <option value="">Auto-detect</option>
+            <option value="en">English</option>
+            <option value="ur">Urdu</option></select
+          ><small
+            >When captions are missing, indexing sends tab audio to Groq in
+            short sections.</small
+          ></label
+        >
         <label class="toggle"
           ><input id="deep" type="checkbox" /><span
             >Process every section for notes & actions<small
@@ -177,8 +212,16 @@
         >
         <label class="toggle"
           ><input id="auto-notes" type="checkbox" /><span
-            >Generate a quick overview when the video ends<small
+            >Generate notes automatically while learning<small
               >Sends sampled source text to Groq automatically.</small
+            ></span
+          ></label
+        >
+        <label class="toggle"
+          ><input id="auto-code" type="checkbox" /><span
+            >Extract code files from new screen text automatically<small
+              >Sends code-like OCR text to Groq and saves source-matched file
+              candidates in the workspace.</small
             ></span
           ></label
         >
@@ -193,6 +236,55 @@
         </p>
         <button id="clear-data" class="danger">Clear all learning data</button
         ><button id="remove-key" class="text-button">Remove API key</button>
+      </div>
+    </dialog>
+    <dialog id="source-dialog" aria-labelledby="source-dialog-title">
+      <h2 id="source-dialog-title">Review your source</h2>
+      <p class="muted" id="source-progress" role="status"></p>
+      <p class="muted">
+        Audio is sent to Groq only when you choose Transcribe. Speech
+        recognition can mishear code and commands; review the text before
+        saving. Import replaces this video's transcript.
+      </p>
+      <label
+        >Video start time (seconds)<input
+          id="audio-offset"
+          type="number"
+          min="0"
+          max="604800"
+          value="0"
+      /></label>
+      <label
+        >Audio language<select id="audio-language">
+          <option value="">Auto-detect</option>
+          <option value="en">English</option>
+          <option value="ur">Urdu</option>
+        </select></label
+      >
+      <p class="muted">
+        For kalam, naat and music, melodic delivery can cause missing or
+        invented words. Static artwork is visual context, not proof of what was
+        sung.
+      </p>
+      <div class="source-controls">
+        <button id="stop-recording" class="secondary" hidden>
+          Stop recording</button
+        ><button id="transcribe-audio" class="primary" hidden>
+          Transcribe audio
+        </button>
+      </div>
+      <label for="review-source">Transcript with timestamps</label>
+      <textarea
+        id="review-source"
+        dir="auto"
+        maxlength="180000"
+        rows="12"
+        placeholder="0:00 Your source text…"
+      ></textarea>
+      <div class="source-controls">
+        <button id="save-reviewed-source" class="primary" disabled>
+          Save reviewed transcript</button
+        ><button id="source-dialog-close" class="secondary">Cancel</button>
       </div>
     </dialog>
     <script type="module" src="panel.js"></script>

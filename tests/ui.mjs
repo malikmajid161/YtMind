@@ -19,7 +19,7 @@ try {
   });
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("http://127.0.0.1:4174/panel.html");
+  await page.goto("http://127.0.0.1:4174/panel.html?preview");
   await page.getByText("YOUR STUDY NOTES", { exact: true }).waitFor();
   await page.locator(".source-proof summary").first().click();
   assert.ok(

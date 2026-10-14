@@ -1,0 +1,13 @@
+{
+  "date": "2026-10-14T06:33:28.196Z",
+  "scope": "One authored JavaScript canvas; real local OCR and automatic Groq code extraction/export. Does not establish recovery of complex tutorial code.",
+  "requests": [
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    }
+  ],
+  "fileName": "ytmind-source-code.zip",
+  "exactCodeMatch": true,
+  "status": "passed"
+}

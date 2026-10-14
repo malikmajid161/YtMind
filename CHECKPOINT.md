@@ -73,3 +73,19 @@ Checkpoint commit 07a4034 was pushed and CI run 38502652001 passed. Subsequent l
 ## Local delivery
 
 The working app can be started with npm start and opened at http://127.0.0.1:4173/panel.html?studio. The latest local extension package is artifacts/releases/ytmind-v3-unpacked.zip (ignored build output). Extract it into a folder, enable Developer mode at chrome://extensions, and select that folder using Load unpacked. Keys are configured in Settings and are not included in the ZIP. Automatic caption failure has a manual transcript fallback; live caption reliability remains unfinished.
+
+## Push checkpoint — 14 October 2026
+
+The working browser app and unpacked MV3 extension are being pushed with audio/subtitle imports, Urdu OCR, URL audio retrieval, lecture batching, code-file export, source auditing and bounded API retries. Notes and Actions persist to IndexedDB. The automatic YouTube caption bug is NOT fixed: a direct YouTube UI get_transcript request returned HTTP 400 FAILED_PRECONDITION. Keep this separate from successful ASR fallback observations.
+
+The user will manually test five video types and fill claim judgments. Evaluation export files and automatic full-context extension intake are still pending work. Scrubbing paused moments also needs an explicit capture-on-seek path before this protocol can be declared ready.
+
+### Caption diagnosis, 14 October 2026
+
+Plain Chrome without the extension reproduced YouTube HTTP 400 FAILED_PRECONDITION and a visible bot-confirmation challenge. Updated production capture code evaluated on the real page correctly returned blocked (zero source segments, no audio fallback). Loaded-page metadata reuse and saved-caption retention regressions pass. Live caption success remains unverified; do not claim the bug fully fixed. User requested debugging before pushing, so current changes remain local.
+
+Side-panel fix: Chrome native toolbar behavior enabled; side-panel startup activates indexing. 51 unit tests passed; actual content-button click created SIDE_PANEL context and activated capture in packaged integration. dist/ and ZIP rebuilt. User must reload the loaded extension and YouTube tab to pick up code changes.
+
+14 Oct reconnection: tested extension reload/re-enable with existing YouTube tab and recovered content listener without video refresh. 55 tests passed; audio errors are persistent; matching capture stream no longer restarts on duplicate start. Rebuilt dist and ZIP. User must reload extension once to obtain new scripting permission/reconnection code. Current kalam native audio still requires real user playback validation.
+
+v3.0.1 checkpoint: same-document sender.url retained old ID, causing new SESSION rejection. Live tab URL validation fixed it. Packaged A/B/C/A transitions preserve capture and save correctly without reload. 59 tests + browser integration passed. Offscreen startup ready handshake, caption fast path/accessibility label cleanup and citation normalization included. Specific user video FhMFEq6_G-k full-audio browser pipeline passed in 32.8 seconds with four HTTP 200 calls; native audio remains separately unverified. Reload extension once, then confirm header /03.0.1. On-page brain opens panel. Past saved notes do not automatically rewrite themselves.

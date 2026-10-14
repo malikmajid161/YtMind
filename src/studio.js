@@ -1,7 +1,10 @@
 import { Store } from "./db.js";
 import { createService } from "./service.js";
 import { defaults } from "./core.js";
-export const studioMode = new URLSearchParams(location.search).has("studio");
+import { youtubeVideoId } from "./source.js";
+export const studioMode =
+  !globalThis.chrome?.runtime?.id &&
+  !new URLSearchParams(location.search).has("preview");
 let service;
 const readLocal = () => {
   try {
@@ -27,24 +30,11 @@ export function localService() {
   return service;
 }
 export function sourceId(url) {
-  let parsed;
-  try {
-    parsed = new URL(url);
-  } catch {
-    throw new Error("Enter a valid YouTube URL.");
-  }
-  if (!["https:", "http:"].includes(parsed.protocol))
-    throw new Error("Enter an HTTP YouTube URL.");
-  const id =
-    parsed.hostname === "youtu.be"
-      ? parsed.pathname.slice(1)
-      : ["youtube.com", "www.youtube.com", "m.youtube.com"].includes(
-            parsed.hostname,
-          )
-        ? parsed.searchParams.get("v")
-        : null;
-  if (!/^[A-Za-z0-9_-]{11}$/.test(id))
-    throw new Error("Enter a YouTube watch URL or youtu.be link.");
+  const id = youtubeVideoId(url);
+  if (!id)
+    throw new Error(
+      "Enter a valid YouTube watch, Shorts, live or youtu.be link.",
+    );
   return id;
 }
 export async function fileFrame(file) {

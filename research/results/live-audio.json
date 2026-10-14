@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-14T03:03:54.843Z",
+  "scope": "One Windows-synthesized English technical speech fixture; real Groq/browser ingestion; not a real tutorial accuracy benchmark",
+  "requests": [
+    {
+      "status": 200,
+      "path": "/openai/v1/audio/transcriptions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    }
+  ],
+  "segments": 4,
+  "transcript": [
+    {
+      "text": "Create a project folder",
+      "startTime": 0
+    },
+    {
+      "text": "Run npm install",
+      "startTime": 2.3
+    },
+    {
+      "text": "Then run npm run build",
+      "startTime": 4.6
+    },
+    {
+      "text": "Check the output before deploying",
+      "startTime": 7.4199996
+    }
+  ],
+  "expectedKeywords": [
+    "project",
+    "install",
+    "build",
+    "output"
+  ],
+  "keywordMatches": [
+    "project",
+    "install",
+    "build",
+    "output"
+  ],
+  "noteCharacters": 1583,
+  "status": "passed"
+}

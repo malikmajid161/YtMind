@@ -1,0 +1,124 @@
+{
+  "date": "2026-10-14T06:33:33.727Z",
+  "scope": "Five authored lecture excerpts through the real browser app and Groq generation plus SAGE; not five full videos or human accuracy scores.",
+  "requests": [
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 429,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 429,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 429,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 429,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 429,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 429,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 429,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    }
+  ],
+  "lectures": [
+    {
+      "videoId": "lecture0001",
+      "outputs": 1,
+      "characters": 1127,
+      "verification": "uncertain"
+    },
+    {
+      "videoId": "lecture0002",
+      "outputs": 1,
+      "characters": 1421,
+      "verification": "uncertain"
+    },
+    {
+      "videoId": "lecture0003",
+      "outputs": 1,
+      "characters": 1004,
+      "verification": "uncertain"
+    },
+    {
+      "videoId": "lecture0004",
+      "outputs": 1,
+      "characters": 989,
+      "verification": "unchecked"
+    },
+    {
+      "videoId": "lecture0005",
+      "outputs": 1,
+      "characters": 1431,
+      "verification": "supported"
+    }
+  ],
+  "status": "complete",
+  "elapsedMs": 45010
+}

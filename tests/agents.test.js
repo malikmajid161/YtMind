@@ -58,6 +58,7 @@ test("Groq handles 401, 429 and malformed JSON without leaking credentials", asy
     await assert.rejects(
       complete({ apiKey: "secret" }, "s", "u", {
         fetcher: async () => new Response("", { status }),
+        wait: async () => {},
       }),
       status === 401 ? /rejected your key/ : /rate limit/,
     );
@@ -71,4 +72,50 @@ test("Groq handles 401, 429 and malformed JSON without leaking credentials", asy
     }),
     /invalid JSON/,
   );
+});
+
+test("rate-limited chat requests retry within a bounded policy before returning a result", async () => {
+  let count = 0;
+  const delays = [];
+  const result = await complete({ apiKey: "fixture" }, "s", "u", {
+    wait: async (ms) => delays.push(ms),
+    fetcher: async () =>
+      ++count < 3
+        ? new Response("", { status: 429, headers: { "retry-after": "2" } })
+        : Response.json({
+            choices: [{ message: { content: "Source answer [E1]" } }],
+          }),
+  });
+  assert.equal(result, "Source answer [E1]");
+  assert.equal(count, 3);
+  assert.deepEqual(delays, [2000, 2000]);
+});
+
+test("a supported model verdict is downgraded when the answer cites nonexistent evidence", async () => {
+  let index = 0;
+  const result = await generate(
+    { sage: true },
+    "notes",
+    "",
+    [
+      {
+        id: "source",
+        text: "Source evidence",
+        videoId: "abcdefghijk",
+        startTime: 0,
+      },
+    ],
+    async () =>
+      ++index === 1
+        ? "Invented citation [E99]"
+        : index === 2
+          ? "Independent answer [E1]"
+          : {
+              status: "supported",
+              reason: "Model agreement",
+              claims: [{ text: "claim", verdict: "supported", refs: [1] }],
+            },
+  );
+  assert.equal(result.verification.status, "uncertain");
+  assert.match(result.verification.reason, /invalid references/);
 });

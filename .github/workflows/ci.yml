@@ -18,9 +18,11 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run test:ui
       - run: npm run test:ocr
+      - run: npm run test:ocr:urdu
       - run: npm run test:extension
       - run: npm run research:retrieval
       - run: npm run research:report
+      - run: npm run package
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -29,3 +31,4 @@ jobs:
             artifacts/*.png
             research/results/*.json
             dist/
+            artifacts/releases/

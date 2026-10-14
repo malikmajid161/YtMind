@@ -1,0 +1,8 @@
+{
+  "date": "2026-10-14T03:36:10.716Z",
+  "scope": "Five authored lecture excerpts through the actual shared service and real Groq generation plus SAGE; not five full videos or human accuracy scores.",
+  "requests": [],
+  "lectures": [],
+  "status": "failed",
+  "error": "Groq could not be reached or timed out. Check your connection and retry."
+}

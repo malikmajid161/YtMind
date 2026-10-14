@@ -8,6 +8,8 @@ import {
 import { generate, extractGraph } from "./agents.js";
 import { analyzeLab } from "./lab.js";
 import { listModels } from "./groq.js";
+import { parseTranscript, validateSegments } from "./source.js";
+import { extractCode } from "./code.js";
 
 export function createService({
   store,
@@ -17,15 +19,30 @@ export function createService({
 }) {
   let queue = Promise.resolve();
   const mutate = (fn) => {
-    const next = queue.then(fn);
+    const next = queue.then(() =>
+      globalThis.navigator?.locks
+        ? navigator.locks.request(`ytmind:${store.name}:write`, fn)
+        : fn(),
+    );
     queue = next.catch(() => {});
     return next;
   };
   const settings = async () => ({ ...defaults, ...(await readSettings()) });
   const busy = new Set();
-  let dataEpoch = 0;
   async function dispatch(m) {
     switch (m.type) {
+      case "AUDIO_STATE":
+        return mutate(async () => {
+          const s = await store.read("sessions", m.videoId);
+          if (!s) return;
+          s.audioState = ["listening", "error", "needs-key", "idle"].includes(
+            m.status,
+          )
+            ? m.status
+            : "idle";
+          s.audioMessage = String(m.message || "").slice(0, 500);
+          await store.put("sessions", s);
+        });
       case "SESSION":
         if (!/^[A-Za-z0-9_-]{11}$/.test(m.videoId))
           throw new Error("Invalid YouTube video identifier.");
@@ -33,6 +50,8 @@ export function createService({
           store.session({
             id: m.videoId,
             title: String(m.title || "YouTube video").slice(0, 300),
+            audioPrimary:
+              typeof m.audioPrimary === "boolean" ? m.audioPrimary : undefined,
             url: `https://www.youtube.com/watch?v=${m.videoId}`,
           }),
         );
@@ -40,6 +59,8 @@ export function createService({
         return mutate(async () => {
           const s = await store.read("sessions", m.videoId);
           if (!s || s.captionStatus === "manual") return;
+          // A failed retry must never erase a previously captured source.
+          if (!(m.segments || []).length && s.transcript?.length) return;
           const previous = JSON.stringify(s.transcript);
           s.transcript = (m.segments || [])
             .slice(0, 20000)
@@ -53,11 +74,69 @@ export function createService({
               text: x.text.slice(0, 4000),
               startTime: x.startTime,
             }));
-          s.captionStatus = s.transcript.length ? "ready" : "unavailable";
+          s.captionStatus = s.transcript.length
+            ? "ready"
+            : m.status === "blocked"
+              ? "blocked"
+              : "unavailable";
+          s.captionMessage = s.transcript.length
+            ? ""
+            : String(m.message || "").slice(0, 300);
           s.captionSource = String(m.source || "captions").slice(0, 80);
           if (previous !== JSON.stringify(s.transcript))
             s.transcriptVersion = crypto.randomUUID();
           await store.put("sessions", s);
+          const config = await settings();
+          if (
+            m.autoRequested &&
+            s.transcript.length &&
+            config.autoNotes &&
+            config.apiKey &&
+            !s.outputs?.some((o) => o.mode === "notes")
+          ) {
+            const epoch = await store.generation();
+            setTimeout(async () => {
+              if (epoch === (await store.generation()))
+                runGeneration(
+                  { videoId: s.id, mode: "notes", auto: true },
+                  config,
+                ).catch(() => {});
+            }, 0);
+          }
+        });
+      case "AUDIO_APPEND":
+        return mutate(async () => {
+          const s = await store.read("sessions", m.videoId);
+          if (
+            !s ||
+            s.captionStatus === "manual" ||
+            (s.transcript.length &&
+              s.captionSource !== "live audio transcription")
+          )
+            return { skipped: true };
+          if (s.createdAt !== m.expectedCreatedAt)
+            throw new Error("Audio source session changed.");
+          const fresh = validateSegments(m.segments);
+          s.transcript = validateSegments([...(s.transcript || []), ...fresh]);
+          s.captionStatus = "ready";
+          s.captionSource = "live audio transcription";
+          s.transcriptVersion = crypto.randomUUID();
+          await store.put("sessions", s);
+          const config = await settings();
+          if (
+            config.autoNotes &&
+            config.apiKey &&
+            !s.outputs?.some((o) => o.mode === "notes")
+          )
+            setTimeout(
+              () =>
+                runGeneration(
+                  { videoId: s.id, mode: "notes", auto: true },
+                  config,
+                ).catch(() => {}),
+              0,
+            );
+          return { count: fresh.length };
         });
       case "FRAME":
         return mutate(async () => {
@@ -81,6 +160,13 @@ export function createService({
             createdAt: Date.now(),
             ocrText: "",
             status: "pending",
+            captureReason: [
+              "manual snapshot",
+              "periodic snapshot",
+              "visual change",
+            ].includes(m.reason)
+              ? m.reason
+              : "uploaded image",
           };
           await store.addFrame(f);
           Promise.resolve(
@@ -120,8 +206,31 @@ export function createService({
           sessions: await store.read("sessions"),
           nodes: await store.read("nodes"),
           edges: await store.read("edges"),
-          settings: { ...(await settings()), apiKey: undefined },
+          settings: {
+            ...(await settings()),
+            apiKey: undefined,
+            hasApiKey: !!(await settings()).apiKey,
+          },
+
+          batch: await store.read("meta", "lecture-batch"),
         };
+      case "SOURCE_STATE": {
+        const s = await store.read("sessions", m.videoId);
+        return s
+          ? {
+              id: s.id,
+              createdAt: s.createdAt,
+              captionSource: s.captionSource,
+              captionStatus: s.captionStatus,
+              captionMessage: s.captionMessage,
+              transcriptCount: s.transcript.length,
+              hasNotes: s.outputs?.some((o) => o.mode === "notes"),
+              hasTranscript:
+                s.transcript.length > 0 &&
+                s.captionSource !== "live audio transcription",
+            }
+          : null;
+      }
       case "SETTINGS":
         return settings();
       case "PROBE":
@@ -137,9 +246,17 @@ export function createService({
           ),
           interval: Math.min(60, Math.max(3, Number(m.value.interval) || 5)),
           profile: m.value.profile === "balanced" ? "balanced" : "performance",
+          ocrLanguage: ["eng", "urd", "eng+urd"].includes(m.value.ocrLanguage)
+            ? m.value.ocrLanguage
+            : old.ocrLanguage,
+          audioLanguage: ["", "en", "ur"].includes(m.value.audioLanguage)
+            ? m.value.audioLanguage
+            : old.audioLanguage,
           deep: !!m.value.deep,
           sage: !!m.value.sage,
           autoNotes: !!m.value.autoNotes,
+          autoCode:
+            m.value.autoCode === undefined ? old.autoCode : !!m.value.autoCode,
         };
         await writeSettings(next);
         return;
@@ -154,10 +271,16 @@ export function createService({
           const previous = (await store.frames(f.videoId)).filter(
             (x) => x.status === "ready",
           );
-          if (
-            !text.trim() ||
-            previous.some((x) => similarity(x.ocrText, text) > 0.85)
-          ) {
+          if (!text.trim()) {
+            await store.put("frames", {
+              ...f,
+              status: "no-text",
+              ocrText: "",
+              confidence: Number(m.confidence) || 0,
+            });
+            return;
+          }
+          if (previous.some((x) => similarity(x.ocrText, text) > 0.85)) {
             await store.tx(["frames"], (t) =>
               t.objectStore("frames").delete(f.id),
             );
@@ -186,18 +309,38 @@ export function createService({
           if (f) await store.put("frames", { ...f, status: "pending" });
         });
       case "IMPORT":
+      case "IMPORT_SEGMENTS":
         return mutate(async () => {
           const s = await store.read("sessions", m.videoId);
           if (!s) throw new Error("Open a video first.");
-          const text = String(m.text || "")
-            .trim()
-            .slice(0, 150000);
-          if (!text) throw new Error("Paste a transcript first.");
-          s.transcript = text
-            .split(/\n+/)
-            .map((line) => ({ text: line, startTime: 0 }));
+          if (
+            m.expectedCreatedAt !== undefined &&
+            (s.createdAt !== m.expectedCreatedAt ||
+              s.transcriptVersion !== m.expectedVersion)
+          )
+            throw new Error(
+              "The source changed while importing. Review and import again.",
+            );
+          s.transcript =
+            m.type === "IMPORT"
+              ? parseTranscript(m.text)
+              : validateSegments(m.segments);
           s.captionStatus = "manual";
+          s.captionSource =
+            m.source === "audio"
+              ? "audio transcription"
+              : "imported transcript";
           s.transcriptVersion = crypto.randomUUID();
+          if (
+            m.coverage &&
+            Number.isFinite(m.coverage.processed) &&
+            Number.isFinite(m.coverage.total)
+          )
+            s.ingestCoverage = {
+              processed: Math.max(0, m.coverage.processed),
+              total: Math.max(0, m.coverage.total),
+              status: m.coverage.status === "complete" ? "complete" : "partial",
+            };
           await store.put("sessions", s);
         });
       case "PIN":
@@ -209,12 +352,108 @@ export function createService({
         });
       case "GENERATE":
         return runGeneration(m, await settings());
+      case "BATCH_START":
+        return mutate(async () => {
+          const sessions = (await store.read("sessions")).filter(
+            (s) => s.pinned,
+          );
+          if (!sessions.length || sessions.length > 10)
+            throw new Error("Pin between 1 and 10 lectures for a batch.");
+          const previous = await store.read("meta", "lecture-batch");
+          if (previous && previous.status !== "complete")
+            throw new Error(
+              "Continue the saved lecture batch or discard it before starting another.",
+            );
+          const entries = [];
+          for (const s of sessions) {
+            const evidence = chunks(s, await store.frames(s.id));
+            if (!evidence.length)
+              throw new Error(
+                `Add source evidence for ${s.title} before batching.`,
+              );
+            const jobId = crypto.randomUUID();
+            s.jobs = [
+              ...(s.jobs || []),
+              { id: jobId, mode: "notes", evidence },
+            ].slice(-4);
+            await store.put("sessions", s);
+            entries.push({
+              videoId: s.id,
+              title: s.title,
+              jobId,
+              nextBatch: 0,
+              totalBatches: batchEvidence(evidence).length,
+              status: "waiting",
+            });
+          }
+          const job = {
+            id: "lecture-batch",
+            runId: crypto.randomUUID(),
+            entries,
+            status: "ready",
+            generation: await store.generation(),
+            createdAt: Date.now(),
+          };
+          await store.put("meta", job);
+          return job;
+        });
+      case "BATCH_DISCARD":
+        return mutate(() =>
+          store.tx(["meta"], (t) =>
+            t.objectStore("meta").delete("lecture-batch"),
+          ),
+        );
+      case "BATCH_STEP": {
+        const step = async () => {
+          const job = await store.read("meta", "lecture-batch");
+          if (!job || job.generation !== (await store.generation()))
+            throw new Error("The lecture batch is no longer available.");
+          const entry = job.entries.find((e) => e.status !== "complete");
+          if (!entry) return job;
+          try {
+            const result = await runGeneration(
+              {
+                mode: "notes",
+                videoId: entry.videoId,
+                jobId: entry.jobId,
+                batchIndex: entry.nextBatch,
+              },
+              { ...(await settings()), deep: true },
+            );
+            entry.nextBatch = result.batchIndex + 1;
+            entry.totalBatches = result.totalBatches;
+            entry.status =
+              entry.nextBatch >= entry.totalBatches ? "complete" : "waiting";
+            entry.error = null;
+            job.status = job.entries.every((e) => e.status === "complete")
+              ? "complete"
+              : "ready";
+          } catch (e) {
+            entry.status = "failed";
+            entry.error = e.message;
+            job.status = "failed";
+          }
+          await mutate(async () => {
+            const current = await store.read("meta", "lecture-batch");
+            if (
+              job.generation !== (await store.generation()) ||
+              current?.runId !== job.runId
+            )
+              throw new Error("The batch was cleared or discarded.");
+            await store.put("meta", job);
+          });
+          return job;
+        };
+        return globalThis.navigator?.locks
+          ? navigator.locks.request(`ytmind:${store.name}:lecture-batch`, step)
+          : step();
+      }
       case "LAB": {
         if (busy.has(m.videoId))
           throw new Error("A request is already running for this video.");
         busy.add(m.videoId);
-        const epoch = dataEpoch;
         try {
+          const epoch = await store.generation();
           const s = await store.read("sessions", m.videoId);
           if (!s) throw new Error("Open a video first.");
           const output = await analyzeLab(
@@ -223,7 +462,7 @@ export function createService({
             chunks(s, await store.frames(s.id)),
           );
           await mutate(async () => {
-            if (epoch !== dataEpoch)
+            if (epoch !== (await store.generation()))
               throw new Error("Data was cleared during analysis.");
             const current = await store.read("sessions", m.videoId);
             if (!current)
@@ -237,23 +476,45 @@ export function createService({
         }
       }
       case "GRAPH": {
-        const epoch = dataEpoch;
+        const epoch = await store.generation();
         const s = await store.read("sessions", m.videoId);
         if (!s) throw new Error("Open a video first.");
         const graph = await extractGraph(
           await settings(),
           retrieve(chunks(s, await store.frames(s.id)), "", "graph"),
         );
-        await mutate(() => {
-          if (epoch !== dataEpoch)
+        await mutate(async () => {
+          if (epoch !== (await store.generation()))
             throw new Error("Data was cleared during extraction.");
           return store.mergeGraph(graph);
         });
         return graph;
       }
+      case "CODE": {
+        const epoch = await store.generation();
+        const s = await store.read("sessions", m.videoId);
+        if (!s) throw new Error("Open a video first.");
+        const all = chunks(s, await store.frames(s.id)).filter(
+          (e) =>
+            e.kind === "frame" &&
+            (!Array.isArray(m.frameIds) || m.frameIds.includes(e.frameId)),
+        );
+        const evidence = retrieve(all, "", "graph");
+        const output = await extractCode(await settings(), evidence);
+        output.coverage.total = all.length;
+        await mutate(async () => {
+          if (epoch !== (await store.generation()))
+            throw new Error("Data was cleared during code extraction.");
+          const current = await store.read("sessions", s.id);
+          if (!current)
+            throw new Error("The source expired during code extraction.");
+          current.outputs = [...(current.outputs || []), output].slice(-200);
+          await store.put("sessions", current);
+        });
+        return output;
+      }
       case "CLEAR":
         await mutate(() => {
-          dataEpoch++;
           return store.clear();
         });
         return;
@@ -265,8 +526,8 @@ export function createService({
     if (busy.has(m.videoId))
       throw new Error("A request is already running for this video.");
     busy.add(m.videoId);
-    const epoch = dataEpoch;
     try {
+      const epoch = await store.generation();
       const sessions =
         m.mode === "research"
           ? (await store.read("sessions")).filter((s) => s.pinned)
@@ -291,7 +552,8 @@ export function createService({
           all = job.evidence;
         } else
           await mutate(async () => {
-            if (epoch !== dataEpoch) throw new Error("Data was cleared.");
+            if (epoch !== (await store.generation()))
+              throw new Error("Data was cleared.");
             const current = await store.read("sessions", s.id);
             if (!current) throw new Error("Session expired. Reopen the video.");
             current.jobs = [
@@ -316,7 +578,7 @@ export function createService({
         result.jobId = jobId;
       }
       await mutate(async () => {
-        if (epoch !== dataEpoch)
+        if (epoch !== (await store.generation()))
           throw new Error("Data was cleared during generation.");
         const targetId =
           m.mode === "research"

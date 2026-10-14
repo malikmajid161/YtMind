@@ -44,6 +44,7 @@ export async function testLiveStudio(browser, port = 4174) {
     await page
       .locator("#source-title")
       .fill("Controlled live application test");
+    await page.locator("#link-auto-ingest").uncheck();
     await page.locator("#source-form .primary").click();
     await page
       .getByText("Missing captions? Add your own source", { exact: true })

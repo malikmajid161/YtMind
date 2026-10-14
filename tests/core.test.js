@@ -172,3 +172,10 @@ test("BM25 prefers rare matching terms; multi-video research retains source dive
   const research = retrieve(all, "React", "research");
   assert.notEqual(research[0].videoId, research[1].videoId);
 });
+
+test("provider line-style citations retain only source IDs we actually supplied", () => {
+  assert.equal(
+    normalizeCitations("Claim【E1†L1-L12】【E2†L9-L12】"),
+    "Claim[E1][E2]",
+  );
+});

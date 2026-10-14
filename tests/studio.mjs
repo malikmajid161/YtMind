@@ -23,10 +23,31 @@ export async function testStudio(browser, port = 4174) {
         });
         return;
       }
+      if (route.request().url().endsWith("/audio/transcriptions")) {
+        await route.fulfill({
+          json: {
+            segments: [
+              { text: "Run npm install.", start: 2, no_speech_prob: 0.01 },
+            ],
+          },
+          headers,
+        });
+        return;
+      }
       const body = route.request().postDataJSON(),
         system = body.messages[0].content;
       let content;
-      if (system.startsWith("Extract concepts"))
+      if (system.startsWith("Extract only programming")) {
+        const source = body.messages[1].content;
+        const ref = Number(
+          source.match(/\[E(\d+)\][^\[]*const count = 123;/)?.[1],
+        );
+        content = JSON.stringify({
+          snippets: ref
+            ? [{ language: "javascript", code: "const count = 123;", ref }]
+            : [],
+        });
+      } else if (system.startsWith("Extract concepts"))
         content = JSON.stringify({
           nodes: [
             { label: "Node.js", type: "technology", refs: [1] },
@@ -82,6 +103,7 @@ export async function testStudio(browser, port = 4174) {
     await page.goto(`http://127.0.0.1:${port}/panel.html?studio`);
     await page.locator("#settings-dialog").waitFor({ state: "visible" });
     await page.locator("#api-key").fill("controlled-test-key");
+    await page.locator("#auto-code").uncheck();
     await page.locator("#check-connection").click();
     await page
       .getByText("Connected · 2 chat models available.", { exact: false })
@@ -91,6 +113,7 @@ export async function testStudio(browser, port = 4174) {
       .locator("#source-url")
       .fill("https://www.youtube.com/watch?v=abcdefghijk");
     await page.locator("#source-title").fill("Controlled tutorial workspace");
+    await page.locator("#link-auto-ingest").uncheck();
     await page.locator("#source-form .primary").click();
     await page
       .getByText("Controlled tutorial workspace", { exact: true })
@@ -167,6 +190,129 @@ export async function testStudio(browser, port = 4174) {
       path: "artifacts/working-studio.png",
       fullPage: true,
     });
+    await page
+      .getByText("Missing captions? Add your own source", { exact: true })
+      .click();
+    await page.locator("#subtitle-file").setInputFiles({
+      name: "source.vtt",
+      mimeType: "text/vtt",
+      buffer: Buffer.from(
+        "WEBVTT\n\n00:12.500 --> 00:15.000\nRun npm install.",
+      ),
+    });
+    await page.locator("#source-dialog").waitFor({ state: "visible" });
+    await page.locator("#save-reviewed-source").click();
+    await page.waitForFunction(async () => {
+      const request = indexedDB.open("ytmind-studio");
+      const db = await new Promise(
+        (resolve) => (request.onsuccess = () => resolve(request.result)),
+      );
+      const r = db
+        .transaction("sessions")
+        .objectStore("sessions")
+        .get("abcdefghijk");
+      return await new Promise(
+        (resolve) =>
+          (r.onsuccess = () =>
+            resolve(r.result.transcript[0].startTime === 12.5)),
+      );
+    });
+    await page
+      .getByText("Missing captions? Add your own source", { exact: true })
+      .click();
+    await page.locator("#audio-file").setInputFiles({
+      name: "speech.wav",
+      mimeType: "audio/wav",
+      buffer: Buffer.from("controlled audio fixture"),
+    });
+    await page.locator("#audio-offset").fill("30");
+    await page.locator("#transcribe-audio").click();
+    await page.waitForFunction(
+      () => !document.querySelector("#save-reviewed-source").disabled,
+    );
+    assert.ok(
+      (await page.locator("#review-source").inputValue()).includes(
+        '"startTime": 32',
+      ),
+    );
+    await page.locator("#save-reviewed-source").click();
+    await page.locator("#source-dialog").waitFor({ state: "hidden" });
+    await page.evaluate(() => {
+      navigator.mediaDevices.getDisplayMedia = async () => {
+        const audio = new AudioContext();
+        const oscillator = audio.createOscillator();
+        const destination = audio.createMediaStreamDestination();
+        oscillator.connect(destination);
+        oscillator.start();
+        const canvas = document.createElement("canvas");
+        canvas.width = canvas.height = 32;
+        const video = canvas.captureStream(10);
+        window.fixtureAudio = audio;
+        window.fixtureTracks = [
+          ...destination.stream.getTracks(),
+          ...video.getTracks(),
+        ];
+        return new MediaStream(window.fixtureTracks);
+      };
+    });
+    await page
+      .getByText("Missing captions? Add your own source", { exact: true })
+      .click();
+    await page.locator("#record-tab-audio").click();
+    await page.locator("#stop-recording").waitFor({ state: "visible" });
+    await page.waitForTimeout(1100);
+    await page.locator("#stop-recording").click();
+    await page.locator("#transcribe-audio").waitFor({ state: "visible" });
+    assert.equal(
+      await page.evaluate(() =>
+        window.fixtureTracks.every((t) => t.readyState === "ended"),
+      ),
+      true,
+    );
+    await page.locator("#source-dialog-close").click();
+    await page.evaluate(() => window.fixtureAudio.close());
+    await page.locator('[data-tab="library"]').click();
+    await page.locator("#batch-start").click();
+    await page.waitForFunction(() =>
+      document.querySelector(".batch-card")?.textContent.includes("complete"),
+    );
+    const zipReady = page.waitForEvent("download");
+    await page.locator("#batch-export").click();
+    assert.equal(
+      (await zipReady).suggestedFilename(),
+      "ytmind-lecture-notes.zip",
+    );
+    await page.locator('[data-tab="vera"]').click();
+    const codeImage = await page.evaluate(() => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 1000;
+      canvas.height = 160;
+      const context = canvas.getContext("2d");
+      context.fillStyle = "white";
+      context.fillRect(0, 0, 1000, 160);
+      context.fillStyle = "black";
+      context.font = "48px monospace";
+      context.fillText("const count = 123;", 20, 100);
+      return canvas.toDataURL().split(",")[1];
+    });
+    await page.locator("#frame-files").setInputFiles({
+      name: "code.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(codeImage, "base64"),
+    });
+    await page.waitForFunction(
+      () =>
+        [...document.querySelectorAll(".frame-body p")].some((e) =>
+          e.textContent.includes("const count = 123;"),
+        ),
+      null,
+      { timeout: 30000 },
+    );
+    await page.locator("#extract-code").click();
+    await page.locator("[data-code-zip]").waitFor();
+    const codeZip = page.waitForEvent("download");
+    await page.locator("[data-code-zip]").click();
+    assert.equal((await codeZip).suggestedFilename(), "ytmind-source-code.zip");
     assert.deepEqual(errors, []);
     console.log(
       "Local app integration passed: settings/models, source import, notes/actions/Q&A, graph, real OCR upload, lab/preflight, pinned research and reload persistence. API responses mocked; storage/OCR/browser pipeline real.",

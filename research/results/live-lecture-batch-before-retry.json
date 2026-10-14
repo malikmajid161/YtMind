@@ -1,0 +1,96 @@
+{
+  "date": "2026-10-14T03:37:00.476Z",
+  "scope": "Five authored lecture excerpts through the real browser app and Groq generation plus SAGE; not five full videos or human accuracy scores.",
+  "requests": [
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 429,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 429,
+      "path": "/openai/v1/chat/completions"
+    }
+  ],
+  "lectures": [
+    {
+      "videoId": "lecture0001",
+      "outputs": 1,
+      "characters": 1325,
+      "verification": "supported"
+    },
+    {
+      "videoId": "lecture0002",
+      "outputs": 1,
+      "characters": 1189,
+      "verification": "uncertain"
+    },
+    {
+      "videoId": "lecture0003",
+      "outputs": 1,
+      "characters": 1296,
+      "verification": "supported"
+    },
+    {
+      "videoId": "lecture0004",
+      "outputs": 1,
+      "characters": 1055,
+      "verification": "unchecked"
+    },
+    {
+      "videoId": "lecture0005",
+      "outputs": 1,
+      "characters": 1385,
+      "verification": "unchecked"
+    }
+  ],
+  "status": "complete",
+  "elapsedMs": 19059
+}

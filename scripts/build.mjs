@@ -7,13 +7,21 @@ await cp("public", "dist", { recursive: true });
 await build({
   entryPoints: [
     "src/background.js",
-    "src/content.js",
     "src/panel.js",
     "src/ocr.js",
+    "src/offscreen.js",
   ],
   outdir: "dist",
   bundle: true,
   format: "esm",
+  target: "chrome116",
+  sourcemap: true,
+});
+await build({
+  entryPoints: ["src/content.js"],
+  outdir: "dist",
+  bundle: true,
+  format: "iife",
   target: "chrome116",
   sourcemap: true,
 });
@@ -32,4 +40,12 @@ await cp(
   "node_modules/@tesseract.js-data/eng/4.0.0_best_int/eng.traineddata.gz",
   "dist/ocr/eng.traineddata.gz",
 );
-console.log("Built unpacked extension in dist/ (OCR assets included).");
+
+await cp(
+  "node_modules/@tesseract.js-data/urd/4.0.0_best_int/urd.traineddata.gz",
+  "dist/ocr/urd.traineddata.gz",
+);
+
+console.log(
+  "Built unpacked extension in dist/ (English and Urdu OCR assets included).",
+);

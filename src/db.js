@@ -7,9 +7,9 @@ export class Store {
     if (this.db) return this.db;
     if (this.opening) return this.opening;
     this.opening = new Promise((resolve, reject) => {
-      const r = indexedDB.open(this.name, 2);
+      const r = indexedDB.open(this.name, 3);
       r.onupgradeneeded = () => {
-        for (const name of ["sessions", "frames", "nodes", "edges"])
+        for (const name of ["sessions", "frames", "nodes", "edges", "meta"])
           if (!r.result.objectStoreNames.contains(name))
             r.result.createObjectStore(name, { keyPath: "id" });
         const frames = r.transaction.objectStore("frames");
@@ -64,7 +64,11 @@ export class Store {
       old = null;
     }
     const value = old
-      ? { ...old, title: meta.title || old.title }
+      ? {
+          ...old,
+          title: meta.title || old.title,
+          audioPrimary: meta.audioPrimary ?? old.audioPrimary,
+        }
       : {
           ...meta,
           createdAt: Date.now(),
@@ -137,8 +141,17 @@ export class Store {
       merge(edges, graph.edges).forEach((e) => t.objectStore("edges").put(e));
     });
   }
+  async generation() {
+    return (await this.read("meta", "generation"))?.value || 0;
+  }
   clear() {
-    return this.tx(["sessions", "frames", "nodes", "edges"], (t) => {
+    return this.tx(["sessions", "frames", "nodes", "edges", "meta"], (t) => {
+      const meta = t.objectStore("meta");
+      const r = meta.get("generation");
+      r.onsuccess = () => {
+        meta.clear();
+        meta.put({ id: "generation", value: (r.result?.value || 0) + 1 });
+      };
       for (const n of ["sessions", "frames", "nodes", "edges"])
         t.objectStore(n).clear();
     });

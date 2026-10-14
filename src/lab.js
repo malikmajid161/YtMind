@@ -22,7 +22,7 @@ export function matchedQuote(entry, evidence) {
 }
 export function pairedEvidence(all, windowSeconds = 75, maxPairs = 12) {
   const captions = all.filter((e) => e.kind === "caption"),
-    frames = all.filter((e) => e.kind === "frame");
+    frames = all.filter((e) => e.kind === "frame" && e.role !== "artwork");
   const selected = new Map(),
     pairs = [];
   for (const frame of frames) {

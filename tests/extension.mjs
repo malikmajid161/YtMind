@@ -1,28 +1,26 @@
-import { chromium } from "@playwright/test";
+import { chromium, expect } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import assert from "node:assert/strict";
 import { probeYouTube } from "./live-youtube.mjs";
 const dist = path.resolve("dist");
-await mkdir("artifacts/extension-profile", { recursive: true });
-const context = await chromium.launchPersistentContext(
-  path.resolve("artifacts/extension-profile"),
-  {
-    channel: "chromium",
-    headless: true,
-    ignoreDefaultArgs: ["--disable-extensions"],
-    viewport: { width: 1100, height: 850 },
-    ...(process.env.TEST_BROWSER_EXE
-      ? { executablePath: process.env.TEST_BROWSER_EXE }
-      : {}),
-    args: [
-      `--disable-extensions-except=${dist}`,
-      `--load-extension=${dist}`,
-      "--enable-logging",
-      `--log-file=${path.resolve("artifacts/chrome-extension.log")}`,
-    ],
-  },
-);
+const profile = path.resolve(`artifacts/extension-profile-${Date.now()}`);
+await mkdir(profile, { recursive: true });
+const context = await chromium.launchPersistentContext(profile, {
+  channel: "chromium",
+  headless: true,
+  ignoreDefaultArgs: ["--disable-extensions"],
+  viewport: { width: 1100, height: 850 },
+  ...(process.env.TEST_BROWSER_EXE
+    ? { executablePath: process.env.TEST_BROWSER_EXE }
+    : {}),
+  args: [
+    `--disable-extensions-except=${dist}`,
+    `--load-extension=${dist}`,
+    "--enable-logging",
+    `--log-file=${path.resolve("artifacts/chrome-extension.log")}`,
+  ],
+});
 try {
   const worker =
     context.serviceWorkers()[0] ||
@@ -58,6 +56,11 @@ try {
         throw e;
       }));
   const extensionId = new URL(worker.url()).host;
+  assert.equal(
+    (await worker.evaluate(() => chrome.sidePanel.getPanelBehavior()))
+      .openPanelOnActionClick,
+    true,
+  );
   const id = "abcdefghijk";
   const fixture = `<!doctype html><html><head><title>Controlled React Tutorial - YouTube</title></head><body><div id="movie_player"><video class="html5-main-video" muted></video></div><h1 class="ytd-watch-metadata">Controlled React Tutorial</h1><ytd-transcript-segment-renderer>0:10 React state remembers a value. Use useState at the top level.</ytd-transcript-segment-renderer><ytd-transcript-segment-renderer>0:30 Run npm install before starting the project.</ytd-transcript-segment-renderer></body></html>`;
   await context.route("https://www.youtube.com/**", (route) =>
@@ -90,8 +93,39 @@ try {
     };
   });
   const watch = await context.newPage();
+  worker.on("console", (m) => {
+    if (m.text().includes("YTMind request failed")) console.log(m.text());
+  });
   await watch.goto(`https://www.youtube.com/watch?v=${id}`);
   await watch.locator("#ytmind-launch").waitFor();
+  await watch.locator("#ytmind-launch").click();
+  await expect
+    .poll(
+      () =>
+        worker.evaluate(
+          async () =>
+            (await chrome.runtime.getContexts({ contextTypes: ["SIDE_PANEL"] }))
+              .length,
+        ),
+      { timeout: 10000 },
+    )
+    .toBeGreaterThan(0);
+  await expect
+    .poll(
+      () =>
+        worker.evaluate(async (videoId) => {
+          const tabs = await chrome.tabs.query({
+            url: "https://www.youtube.com/*",
+          });
+          const tab = tabs.find((t) => t.url?.includes(videoId));
+          return tab
+            ? (await chrome.tabs.sendMessage(tab.id, { type: "GET_VIDEO" }))
+                .capturing
+            : false;
+        }, id),
+      { timeout: 10000 },
+    )
+    .toBe(true);
   const panel = await context.newPage();
   await panel.goto(`chrome-extension://${extensionId}/panel.html`);
   const send = (type, fields = {}) =>
@@ -164,8 +198,98 @@ try {
   assert.equal(state.sessions.length, 0);
   assert.equal(state.nodes.length, 0);
   await probeYouTube(context, panel, send);
+  await worker.evaluate(async () => {
+    if (!(await chrome.offscreen.hasDocument()))
+      await chrome.offscreen.createDocument({
+        url: "offscreen.html",
+        reasons: ["USER_MEDIA"],
+        justification: "Controlled audio-worker lifecycle test.",
+      });
+  });
+  assert.equal((await send("AUDIO_HEARTBEAT", { videoId: id })).active, false);
+  assert.equal((await send("AUDIO_STOP")).active, false);
+  await worker.evaluate(() => chrome.offscreen.closeDocument());
+  await watch.bringToFront();
+  const navigationCount = await watch.evaluate(
+    () => performance.getEntriesByType("navigation").length,
+  );
+  const watchTabId = await worker.evaluate(
+    async (videoId) =>
+      (await chrome.tabs.query({ url: "https://www.youtube.com/*" })).find(
+        (t) => t.url?.includes(videoId),
+      ).id,
+    id,
+  );
+  await worker.evaluate(
+    ({ tabId, videoId }) =>
+      chrome.tabs.sendMessage(tabId, { type: "CAPTURE_START", videoId }),
+    { tabId: watchTabId, videoId: id },
+  );
+  for (const nextId of ["spa00000001", "spa00000002", id]) {
+    await watch.evaluate((videoId) => {
+      document.dispatchEvent(new Event("yt-navigate-start"));
+      history.pushState({}, "", `/watch?v=${videoId}`);
+      document.querySelector("h1").textContent = `Tutorial ${videoId}`;
+      for (const segment of document.querySelectorAll(
+        "ytd-transcript-segment-renderer",
+      ))
+        segment.remove();
+      const segment = document.createElement("ytd-transcript-segment-renderer");
+      segment.textContent = `0:10 10 secondsSource for ${videoId}`;
+      document.body.append(segment);
+      document.dispatchEvent(new Event("yt-navigate-finish"));
+    }, nextId);
+    await expect
+      .poll(
+        async () =>
+          (await send("STATE")).sessions.find((s) => s.id === nextId)
+            ?.transcript?.[0]?.text,
+        { timeout: 10000 },
+      )
+      .toBe(`Source for ${nextId}`);
+    const info = await worker.evaluate(
+      (tabId) => chrome.tabs.sendMessage(tabId, { type: "GET_VIDEO" }),
+      watchTabId,
+    );
+    assert.equal(info.videoId, nextId);
+    assert.equal(info.capturing, true);
+  }
+  assert.equal(
+    await watch.evaluate(
+      () => performance.getEntriesByType("navigation").length,
+    ),
+    navigationCount,
+  );
+  // Reloading an unpacked extension invalidates receivers in existing tabs.
+  // Recover that real state without refreshing or navigating the video page.
+  await watch.bringToFront();
+  const restarted = context
+    .waitForEvent("serviceworker", { timeout: 15000 })
+    .catch(() => null);
+  await worker.evaluate(() => chrome.runtime.reload()).catch(() => {});
+  await watch.waitForTimeout(1000);
+  const manager = await context.newPage();
+  await manager.goto("chrome://extensions/");
+  await manager.evaluate(
+    (id) => chrome.management.setEnabled(id, true),
+    extensionId,
+  );
+  const recovery = await context.newPage();
+  await recovery.goto(`chrome-extension://${extensionId}/panel.html#settings`);
+  await restarted;
+  const recovered = await recovery.evaluate(async (videoId) => {
+    const tabs = await chrome.tabs.query({ url: "https://www.youtube.com/*" });
+    const tab = tabs.find((t) => t.url?.includes(videoId));
+    const response = await chrome.runtime.sendMessage({
+      type: "CONNECT_VIDEO",
+      tabId: tab.id,
+    });
+    if (response.error) throw new Error(response.error);
+    return response.data;
+  }, id);
+  assert.equal(recovered.videoId, id);
   console.log(
-    "Packaged MV3 checks passed: service worker, YouTube fixture ingestion, real IndexedDB, Groq mock/SAGE, pin/clear, local browser OCR.",
+    "Packaged MV3 checks passed: automatic reconnection after extension reload, actual side-panel opening and automatic indexing, service worker, YouTube fixture ingestion, real IndexedDB, Groq mock/SAGE, pin/clear, local browser OCR.",
   );
 } finally {
   await context.close();

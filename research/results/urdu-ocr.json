@@ -1,0 +1,10 @@
+{
+  "date": "2026-10-14T03:38:23.679Z",
+  "scope": "One authored Urdu canvas phrase; local packaged Urdu OCR, not decorative Art Track artwork accuracy.",
+  "externalRequests": 0,
+  "expected": "یہ ایک کتاب ہے",
+  "actual": "یہ ایک کتاب ہے",
+  "confidence": 91,
+  "exact": true,
+  "status": "local-urdu-model-working"
+}

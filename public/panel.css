@@ -926,3 +926,37 @@ label small {
     padding: 16px;
   }
 }
+.source-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 14px 0;
+}
+.file-control {
+  position: relative;
+  cursor: pointer;
+}
+.file-control input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  cursor: pointer;
+}
+#source-dialog {
+  width: min(620px, calc(100vw - 32px));
+}
+#source-dialog textarea {
+  width: 100%;
+  margin-top: 12px;
+}
+#source-dialog label {
+  display: block;
+  margin-top: 12px;
+}
+.batch-card {
+  margin: 20px 0;
+  padding: 20px;
+  border: 1px solid var(--border, #d7ddd1);
+  border-radius: 16px;
+}

@@ -2,8 +2,11 @@ import "fake-indexeddb/auto";
 import test from "node:test";
 import assert from "node:assert/strict";
 const saved = {};
+let panelBehavior;
+let liveTabUrl;
 const event = { addListener() {} };
 globalThis.chrome = {
+  tabs: { get: async () => ({ url: liveTabUrl }) },
   runtime: {
     id: "test-extension",
     getURL: (p) => "chrome-extension://test-extension/" + p,
@@ -19,20 +22,31 @@ globalThis.chrome = {
       setAccessLevel: async () => {},
     },
   },
-  sidePanel: { setPanelBehavior: async () => {}, open: async () => {} },
+  sidePanel: {
+    setPanelBehavior: async (value) => {
+      panelBehavior = value;
+    },
+    open: async () => {},
+  },
   alarms: { create() {}, onAlarm: event },
 };
 const { dispatch } = await import("../src/background.js");
+test("toolbar delegates panel opening to Chrome even before source capture", () => {
+  assert.deepEqual(panelBehavior, { openPanelOnActionClick: true });
+});
 const trusted = {
   id: "test-extension",
   url: "chrome-extension://test-extension/panel.html",
   tab: { id: 1 },
 };
-const youtube = (id) => ({
-  id: "test-extension",
-  url: `https://www.youtube.com/watch?v=${id}`,
-  tab: { id: 2 },
-});
+const youtube = (id) => (
+  (liveTabUrl = `https://www.youtube.com/watch?v=${id}`),
+  {
+    id: "test-extension",
+    url: `https://www.youtube.com/watch?v=${id}`,
+    tab: { id: 2 },
+  }
+);
 const seed = async (id) => {
   await dispatch(
     { type: "SESSION", videoId: id, title: "Tutorial" },
@@ -135,4 +149,36 @@ test("an in-flight provider result cannot resurrect cleared learning data", asyn
   } finally {
     globalThis.fetch = previous;
   }
+});
+
+test("SPA navigation accepts the current video even when sender URL is the old document", async () => {
+  const oldSender = youtube("old00000001");
+  liveTabUrl = "https://www.youtube.com/watch?v=new00000001";
+  await dispatch(
+    { type: "SESSION", videoId: "new00000001", title: "Next video" },
+    oldSender,
+  );
+  await dispatch(
+    {
+      type: "TRANSCRIPT",
+      videoId: "new00000001",
+      segments: [{ text: "New source", startTime: 2 }],
+    },
+    oldSender,
+  );
+  await assert.rejects(
+    dispatch(
+      {
+        type: "TRANSCRIPT",
+        videoId: "old00000001",
+        segments: [{ text: "Stale source", startTime: 2 }],
+      },
+      oldSender,
+    ),
+    /Video changed/,
+  );
+  const saved = (await dispatch({ type: "STATE" }, trusted)).sessions.find(
+    (s) => s.id === "new00000001",
+  );
+  assert.equal(saved.transcript[0].text, "New source");
 });

@@ -5,15 +5,18 @@ export const defaults = {
   verifierModel: "openai/gpt-oss-20b",
   interval: 5,
   profile: "performance",
+  ocrLanguage: "eng",
+  audioLanguage: "",
   deep: true,
   sage: true,
-  autoNotes: false,
+  autoNotes: true,
+  autoCode: true,
 };
 export const time = (seconds) =>
   `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
 export function normalizeCitations(text) {
   return String(text).replace(
-    /【\s*E(\d+)\s*】|［\s*E(\d+)\s*］/g,
+    /【\s*E(\d+)(?:†L\d+(?:-L?\d+)?)?\s*】|［\s*E(\d+)\s*］/g,
     (_, a, b) => `[E${a || b}]`,
   );
 }
@@ -62,6 +65,7 @@ export function chunks(session, frames = []) {
         startTime: f.timestamp,
         kind: "frame",
         frameId: f.id,
+        role: session.audioPrimary ? "artwork" : "screen evidence",
       });
   const bounded = out.flatMap((c) => {
     const pieces = [];
@@ -166,7 +170,7 @@ export function evidenceBlock(evidence) {
   return evidence
     .map(
       (c, i) =>
-        `[E${i + 1}] ${c.title} | ${time(c.startTime)} | ${c.kind}\n${c.text}`,
+        `[E${i + 1}] ${c.title} | ${time(c.startTime)} | ${c.kind}${c.role ? " | " + c.role : ""}\n${c.text}`,
     )
     .join("\n\n");
 }

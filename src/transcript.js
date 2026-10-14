@@ -12,10 +12,10 @@ export class TranscriptFetcher {
   constructor(signal) {
     this.signal = signal;
   }
-  _signal() {
+  _signal(timeout = 15000) {
     return this.signal
-      ? AbortSignal.any([this.signal, AbortSignal.timeout(15000)])
-      : AbortSignal.timeout(15000);
+      ? AbortSignal.any([this.signal, AbortSignal.timeout(timeout)])
+      : AbortSignal.timeout(timeout);
   }
   _decodeCaptions(text) {
     try {
@@ -54,12 +54,32 @@ export class TranscriptFetcher {
           .trim();
         const m = raw.match(/^((?:\d+:)?\d{1,2}:\d{2})\s*(.*)$/);
         if (!m) return null;
+        const startTime = m[1]
+          .split(":")
+          .map(Number)
+          .reduce((a, n) => a * 60 + n, 0);
+        const label = m[2].match(
+          /^(?:\d+\s+(?:hours?|minutes?|seconds?),?\s*)+/,
+        )?.[0];
+        const labelSeconds = label
+          ? [...label.matchAll(/(\d+)\s+(hours?|minutes?|seconds?)/g)].reduce(
+              (sum, x) =>
+                sum +
+                Number(x[1]) *
+                  (x[2].startsWith("hour")
+                    ? 3600
+                    : x[2].startsWith("minute")
+                      ? 60
+                      : 1),
+              0,
+            )
+          : -1;
         return {
-          text: m[2].trim(),
-          startTime: m[1]
-            .split(":")
-            .map(Number)
-            .reduce((a, n) => a * 60 + n, 0),
+          text: (
+            el.querySelector?.(".segment-text")?.textContent ||
+            (labelSeconds === startTime ? m[2].slice(label.length) : m[2])
+          ).trim(),
+          startTime,
         };
       })
       .filter((s) => s?.text);
@@ -68,17 +88,40 @@ export class TranscriptFetcher {
   async fetch(videoId) {
     // An ad blocks the real player: wait for it to finish first
     await this._waitForRealVideo();
+    const openVideo =
+      new URLSearchParams(globalThis.location?.search).get("v") === videoId;
+    if (openVideo) {
+      const transcript = this._visibleTranscript();
+      if (transcript.length)
+        return {
+          title: this._domTitle(),
+          channel: this._domChannel(),
+          transcript,
+          source: "visible transcript",
+        };
+    }
 
-    let html = "";
+    // Use the loaded watch page first. A second watch request can receive a
+    // login challenge even when the user's current player is working.
+    let html = [...document.querySelectorAll("script:not([src])")]
+      .map((s) => s.textContent || "")
+      .join("\n");
+    let pagePlayer = this._parse(html, "ytInitialPlayerResponse = ");
+    if (pagePlayer?.videoDetails?.videoId !== videoId) {
+      html = ""; // Inline boot data can belong to the previous SPA video.
+      pagePlayer = null;
+    }
     try {
-      const response = await fetch(
-        `https://www.youtube.com/watch?v=${videoId}`,
-        {
-          credentials: "include",
-          signal: this._signal(),
-        },
-      );
-      if (response.ok) html = await response.text();
+      if (!html) {
+        const response = await fetch(
+          `https://www.youtube.com/watch?v=${videoId}`,
+          {
+            credentials: "include",
+            signal: this._signal(5000),
+          },
+        );
+        if (response.ok) html = await response.text();
+      }
     } catch {
       // Page metadata may be blocked; still try the visible player's captions.
     }
@@ -91,6 +134,31 @@ export class TranscriptFetcher {
 
     const title = player.videoDetails?.title || this._domTitle();
     const channel = player.videoDetails?.author || this._domChannel();
+    const errorScreen = document.querySelector(
+      "yt-playability-error-supported-renderers yt-player-interstitial-renderer, .ytp-error-content-wrap",
+    );
+    const visibleError = (
+      errorScreen?.getAttribute?.("aria-label") ||
+      errorScreen?.textContent ||
+      ""
+    )
+      .replace(/\s+/g, " ")
+      .trim();
+    const blockedReason =
+      visibleError ||
+      (pagePlayer?.playabilityStatus?.status !== "OK"
+        ? pagePlayer?.playabilityStatus?.reason
+        : "");
+    if (blockedReason) {
+      return {
+        title,
+        channel,
+        transcript: [],
+        status: "blocked",
+        message: String(blockedReason).slice(0, 300),
+        needsAudio: false,
+      };
+    }
 
     const errors = [];
     const isOpenVideo =
@@ -144,10 +212,17 @@ export class TranscriptFetcher {
       '.ytp-subtitles-button:not([style*="display: none"])',
     );
 
-    if (!hasCaptionTracks && !hasCcButton) {
-      return { title, channel, transcript: [], needsAudio: true };
-    }
-    return { title, channel, transcript: [], needsAudio: true };
+    return {
+      title,
+      channel,
+      transcript: [],
+      needsAudio: true,
+      status: "unavailable",
+      message:
+        hasCaptionTracks || hasCcButton
+          ? "YouTube caption requests failed. Retry captions when the video plays normally."
+          : "No usable caption source found. Audio transcription is available.",
+    };
   }
 
   // ── Method C: youtubei get_transcript ─────────────────────
@@ -281,30 +356,7 @@ export class TranscriptFetcher {
 
   // ── Method B: open "Show transcript" panel and read it ────
   async _viaDomPanel(videoId) {
-    const toSeconds = (t) =>
-      t
-        .split(":")
-        .map(Number)
-        .reduce((acc, n) => acc * 60 + (n || 0), 0);
-
-    // Works with both the old and the new YouTube transcript layouts
-    const readSegments = () => {
-      const els = document.querySelectorAll(
-        "ytd-transcript-segment-renderer, transcript-segment-view-model",
-      );
-      return [...els]
-        .map((el) => {
-          const raw = (el.innerText || el.textContent || "")
-            .replace(/\s+/g, " ")
-            .trim();
-          const m = raw.match(
-            /^((?:\d+:)?\d{1,2}:\d{2})\s*(?:\d+\s+(?:seconds?|minutes?|hours?),?\s*)*\s*(.*)$/,
-          );
-          if (!m) return null;
-          return { text: m[2].trim(), startTime: toSeconds(m[1]) };
-        })
-        .filter((s) => s?.text);
-    };
+    const readSegments = () => this._visibleTranscript();
 
     let segments = readSegments();
     if (segments.length) return segments;

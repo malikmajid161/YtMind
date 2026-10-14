@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-14T03:18:10.572Z",
+  "videoId": "Uinx1py7Jsg",
+  "url": "https://youtu.be/Uinx1py7Jsg",
+  "durationSeconds": 396,
+  "scope": "User-specified Urdu Art Track; full audio import through the browser with real Groq. No human reference transcript; no accuracy claim. Lyrics stay in ignored local artifacts.",
+  "requests": [
+    {
+      "status": 200,
+      "path": "/openai/v1/audio/transcriptions"
+    }
+  ],
+  "transcriptionMs": 8444,
+  "segments": 29,
+  "characters": 881,
+  "arabicScriptCharacters": 679,
+  "firstSegmentSeconds": 0,
+  "lastSegmentSeconds": 396.13312,
+  "reviewStatus": "Awaiting human review; melodic transcription may omit or invent words.",
+  "status": "timestamped-urdu-transcription-returned"
+}

@@ -1,0 +1,11 @@
+{
+  "scope": "Native tab capture via extension action keyboard shortcut; controlled canvas/video and mocked ASR",
+  "date": "2026-10-14T06:35:45.829Z",
+  "audioRequests": 0,
+  "started": {
+    "active": false
+  },
+  "actionObserved": false,
+  "status": "failed",
+  "error": "Extension action did not activate tab audio in this headless browser."
+}

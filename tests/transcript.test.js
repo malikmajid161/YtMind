@@ -81,3 +81,81 @@ test("navigation cancellation restores temporarily enabled captions", async () =
     globalThis.performance = originalPerformance;
   }
 });
+
+test("loaded-page captions do not trigger another watch request", async () => {
+  const previousDocument = globalThis.document;
+  const previousLocation = globalThis.location;
+  const previousFetch = globalThis.fetch;
+  globalThis.document = {
+    querySelectorAll: () => [
+      {
+        textContent:
+          'ytInitialPlayerResponse = {"videoDetails":{"videoId":"abcdefghijk","title":"Loaded tutorial","author":"Teacher"},"playabilityStatus":{"status":"OK"}};',
+      },
+    ],
+    querySelector: () => null,
+    title: "Loaded tutorial - YouTube",
+  };
+  globalThis.location = { search: "?v=abcdefghijk" };
+  globalThis.fetch = () => {
+    throw new Error("Unexpected second watch request");
+  };
+  const parser = new TranscriptFetcher();
+  parser._waitForRealVideo = async () => {};
+  parser._visibleTranscript = () => [
+    { text: "Exact page caption", startTime: 4 },
+  ];
+  try {
+    const result = await parser.fetch("abcdefghijk");
+    assert.equal(result.title, "Loaded tutorial");
+    assert.equal(result.source, "visible transcript");
+    assert.equal(result.transcript.length, 1);
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.location = previousLocation;
+    globalThis.fetch = previousFetch;
+  }
+});
+
+test("YouTube player challenge is reported as blocked, not missing captions", async () => {
+  const previousDocument = globalThis.document;
+  const previousFetch = globalThis.fetch;
+  globalThis.document = {
+    querySelectorAll: () => [],
+    querySelector: (selector) =>
+      selector.includes(".ytp-error-content-wrap")
+        ? { textContent: "Sign in to confirm you're not a bot" }
+        : null,
+    title: "Tutorial - YouTube",
+  };
+  globalThis.fetch = async () => new Response("");
+  const parser = new TranscriptFetcher();
+  parser._waitForRealVideo = async () => {};
+  try {
+    const result = await parser.fetch("abcdefghijk");
+    assert.equal(result.status, "blocked");
+    assert.equal(result.needsAudio, false);
+    assert.match(result.message, /not a bot/);
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.fetch = previousFetch;
+  }
+});
+
+test("caption accessibility labels are stripped only when they match the timestamp", () => {
+  const previous = globalThis.document;
+  globalThis.document = {
+    querySelectorAll: () => [
+      { textContent: "1:09 1 minute, 9 secondsاصل متن" },
+      { textContent: "0:10 3 seconds later the service starts" },
+    ],
+  };
+  try {
+    assert.deepEqual(new TranscriptFetcher()._visibleTranscript(), [
+      { text: "اصل متن", startTime: 69 },
+      { text: "3 seconds later the service starts", startTime: 10 },
+    ]);
+  } finally {
+    globalThis.document = previous;
+  }
+});

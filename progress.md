@@ -19,3 +19,59 @@ Earlier administrator-policy blocker diagnosis was incorrect. Invalid extension 
 No universal reliability, novelty or competitor-superiority claims are established. Research is preliminary: BM25 27/32 top-1 vs v1 26/32 (paired p=1.0); OCR 7/8 exact; one label error in eight Groq pilot cases.
 
 Full run commands, known failures and next steps are in CHECKPOINT.md. Local credentials and generated browser artifacts remain ignored.
+
+## Active product completion — 14 October 2026
+
+- Implemented timestamped SRT/VTT/JSON/text imports and reviewable audio transcription.
+- Real authored English speech path passed: four segments, all four expected keywords, notes generated through Groq.
+- User-specified Urdu Art Track Uinx1py7Jsg (396 seconds): real full audio returned 29 Urdu-script segments in 8.4 seconds; human accuracy review remains pending. Blank instrumental segments exposed and fixed an ingestion bug.
+- Added bundled Urdu OCR and auto/English/Urdu audio selection.
+- Added offscreen native tab-audio fallback without a recurring recording chooser; toolbar action opens the side panel and starts indexing. Installation permission and per-tab Chrome invocation remain platform requirements.
+- Added periodic frame snapshots beyond visual heuristics, preserving snapshots with no readable OCR.
+- Added persistent multi-workspace invalidation, lecture-batch notes with pause/resume, and verbatim code-file extraction/export.
+- Local URL audio helper and full paste-link integration are being verified. Release checks and documentation refresh remain in progress.
+
+## User priority update — 14 October 2026
+
+1. Debug actual YouTube caption capture returning zero segments on public/live sources. Network and DOM diagnostics underway; ASR success is not being counted as caption success.
+2. Finish installable ZIP with README and installation instructions after final regression/CI checks.
+3. Evaluate five held-out real tutorial videos and write eval-results.md. Human accuracy labels require an actual reviewer; a review pack will be prepared and unprovided human labels will remain pending.
+
+## Caption debugging checkpoint — 14 October 2026
+
+- Reproduced the zero-segment probe in a plain Chrome session without YTMind. YouTube's own transcript requests returned HTTP 400 FAILED_PRECONDITION; its player displayed "Sign in to confirm you're not a bot".
+- Verified updated TranscriptFetcher against that real page: status=blocked, captionSegments=0, needsAudio=false. This is not successful live caption capture.
+- Loaded-page metadata is used before fetching a second watch page; stale SPA video metadata is rejected.
+- Failed caption retries preserve existing saved evidence. Panel displays the actual playback blockage; known blocked sessions do not initiate audio transcription.
+- 50 unit tests and extension build passed. Browser and packaged-extension regressions are being rerun.
+- Successful caption capture on an unrestricted, normally playing YouTube session remains unverified. GitHub push is held per the user's instruction to debug first.
+
+Caption checkpoint regression results: 50/50 unit tests, build, browser UI integration and packaged MV3 integration passed. Integration provider responses are mocks; the external YouTube blockage diagnostic is real. Updated unpacked ZIP built successfully. No GitHub push performed.
+
+## Side-panel opening correction — 14 October 2026
+
+- Toolbar opening now uses Chrome's native openPanelOnActionClick=true behavior. Errors in the fallback opening path are logged instead of silently discarded.
+- Actual side-panel initialization starts indexing through a trusted background request, independently of whether Chrome fires action.onClicked.
+- Failed on-page opening shows a toolbar instruction on the brain button.
+- 51 unit tests and build passed. Packaged browser integration clicked the actual content brain button, observed a real SIDE_PANEL context and verified automatic capture activation. This uses a controlled YouTube fixture, not live caption or live audio accuracy.
+- dist and installable ZIP rebuilt. Reload the existing unpacked extension in chrome://extensions, then refresh YouTube. GitHub push remains held at the previous caption-debug checkpoint.
+
+## Existing-tab reconnection and audio diagnostics — 14 October 2026
+
+- User confirmed extension key and toolbar invocation; then reported receiving-end missing. Added trusted CONNECT_VIDEO path that pings and reattaches bundled content.js on authorized YouTube video tabs. Concurrent reconnects share one injection; unrelated sites are excluded.
+- Added scripting permission for recovery and an isolated IIFE content bundle to avoid redeclaration against stale injected scripts.
+- Packaged integration reloaded the extension (headless CLI profile required re-enabling the disabled extension), kept the existing watch page, and successfully recovered its content receiver without refreshing the video.
+- Audio startup failures now persist in session status, paused audio indicates playback needed, and repeated audio starts retain an existing matching stream.
+- 55/55 unit tests passed, packaged MV3 integration passed, dist and ZIP rebuilt. Live ASR on the user's current kalam remains unverified. New screenshot/error status is needed if audio still fails; do not claim whole-video context from live played-only capture.
+
+## SPA navigation root cause and v3.0.1 — 14 October 2026
+
+- Reproduced user's SESSION rejection and audio "Video session is not ready" during same-document YouTube navigation. Chrome MessageSender.url retained the initial video URL. Validation now checks live chrome.tabs.get URL, preserving origin restrictions and rejecting stale old-video messages.
+- Preserves active indexing across navigation-start/finish and resumes if YouTube resets the capture lease. Waits through page transitions instead of reading stale player DOM. CONNECT_VIDEO ensures the session exists before downstream audio starts.
+- Packaged browser regression switches A → B → C → A through history/navigation events without reloading the document; each source is stored under its own video ID and capture stays active. Reload/reconnect test also passes.
+- On-page brain click starts indexing even with an existing panel; toolbar remains an alternate way to open the panel. Chrome tab-audio eligibility still depends on browser authorization; this change does not bypass it.
+- Uses already-visible captions immediately; secondary watch metadata timeout reduced from 15 to 5 seconds. Caption DOM reading removes matching accessibility timestamp labels, preserves actual spoken duration phrases, and shares one parser.
+- Fixed provider citation forms such as E1 with line suffixes to canonical E1 links, without retaining fabricated line numbers. Notes prompt omits irrelevant code sections and forbids inventing action items or translating garbled devotional captions as reliable source facts.
+- Offscreen audio startup waits for its message handler rather than failing on a creation race.
+- 59 unit tests and browser/packaged-extension checks passed. Full-audio workflow on user video FhMFEq6_G-k returned four HTTP 200 responses and notes in 32,804 ms. This is a local companion/browser workflow, not a native live tab capture success or a human accuracy evaluation.
+- Header and manifest now show 3.0.1 so user can distinguish stale loaded code. Local dist rebuilt. Previous saved notes remain historical outputs and should be regenerated to use corrected parsing/citations.

@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-14T03:30:23.131Z",
+  "videoId": "Uinx1py7Jsg",
+  "scope": "Real paste-link-to-audio-to-Urdu-transcript-to-notes integration on the user-specified Art Track. No human accuracy reference; no lyrics in tracked results.",
+  "requests": [
+    {
+      "status": 200,
+      "path": "/openai/v1/audio/transcriptions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    }
+  ],
+  "elapsedMs": 23461,
+  "noteCharacters": 3027,
+  "verificationLabel": "Needs a closer look",
+  "status": "passed"
+}

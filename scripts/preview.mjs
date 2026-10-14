@@ -1,6 +1,7 @@
 import http from "node:http";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { mediaRequest } from "./media.mjs";
 export function previewServer(port = 4173) {
   const root = path.resolve("dist");
   const types = {
@@ -13,6 +14,8 @@ export function previewServer(port = 4173) {
   };
   const server = http.createServer(async (req, res) => {
     try {
+      const requestUrl = new URL(req.url, "http://localhost");
+      if (await mediaRequest(req, res, requestUrl)) return;
       const url = new URL(req.url, "http://localhost"),
         p = path.resolve(
           root,
@@ -46,6 +49,8 @@ export function previewServer(port = 4173) {
 }
 if (process.argv[1]?.endsWith("preview.mjs")) {
   await previewServer();
-  console.log("Design preview (sample data): http://127.0.0.1:4173/panel.html");
+  console.log(
+    "Design preview (sample data): http://127.0.0.1:4173/panel.html?preview",
+  );
   console.log("Working local app: http://127.0.0.1:4173/panel.html?studio");
 }
