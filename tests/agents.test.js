@@ -119,3 +119,39 @@ test("a supported model verdict is downgraded when the answer cites nonexistent 
   assert.equal(result.verification.status, "uncertain");
   assert.match(result.verification.reason, /invalid references/);
 });
+
+test("frame OCR cannot verify a claim about garbled caption transcripts", async () => {
+  let callIndex = 0;
+  const result = await generate(
+    { sage: true },
+    "notes",
+    "",
+    [
+      {
+        text: "aad x mt r IN",
+        title: "Video",
+        kind: "frame",
+        confidence: 12,
+        startTime: 255,
+        videoId: "abcdefghijk",
+      },
+    ],
+    async () =>
+      ++callIndex < 3
+        ? "Later captions become fragmented. [E1]"
+        : {
+            status: "supported",
+            reason: "Model agreement",
+            claims: [
+              {
+                text: "Later captions become fragmented",
+                verdict: "supported",
+                refs: [1],
+              },
+            ],
+          },
+  );
+  assert.equal(result.verification.status, "uncertain");
+  assert.equal(result.verification.claims[0].verdict, "uncertain");
+  assert.match(result.verification.reason, /Source-type audit/);
+});

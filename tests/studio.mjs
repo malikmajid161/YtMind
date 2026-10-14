@@ -118,6 +118,13 @@ export async function testStudio(browser, port = 4174) {
     await page
       .getByText("Controlled tutorial workspace", { exact: true })
       .waitFor();
+    await page.locator('[data-generate="notes"]').click();
+    await page
+      .getByText("No matching source content yet.", { exact: false })
+      .waitFor();
+    await page.locator('[data-tab="chat"]').click();
+    await page.waitForFunction(() => document.querySelector("#notice").hidden);
+    await page.locator('[data-tab="notes"]').click();
     await page
       .getByText("Missing captions? Add your own source", { exact: true })
       .click();

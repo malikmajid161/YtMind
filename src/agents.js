@@ -28,7 +28,10 @@ export async function generate(
     );
   const source = evidenceBlock(evidence),
     request = `TASK: ${tasks[mode] || tasks.chat}\nQUESTION: ${query}\nEVIDENCE:\n${source}`;
-  const answer = normalizeCitations(await call(settings, policy, request));
+  const generationPolicy = `${policy}\nPreserve source modality: frame evidence is OCR of visible pixels, never a transcript of spoken words. Garbled frame OCR cannot establish that captions or audio become garbled. Distinguish source transcription uncertainty from image-recognition uncertainty. Do not turn ambiguous devotional references into verified theological interpretations.`;
+  const answer = normalizeCitations(
+    await call(settings, generationPolicy, request),
+  );
   let verification = {
       status: "unchecked",
       claims: [],
@@ -38,7 +41,7 @@ export async function generate(
   if (settings.sage) {
     try {
       alternative = normalizeCitations(
-        await call(settings, policy, request, {
+        await call(settings, generationPolicy, request, {
           model: settings.verifierModel,
         }),
       );
@@ -60,6 +63,24 @@ export async function generate(
         reason: `SAGE did not finish: ${e.message}`,
       };
     }
+  }
+  const modalityErrors = verification.claims.filter(
+    (c) =>
+      c.verdict === "supported" &&
+      /\b(captions?|transcript)\b/i.test(c.text) &&
+      c.refs.length &&
+      c.refs.every((n) => evidence[n - 1]?.kind === "frame"),
+  );
+  if (modalityErrors.length) {
+    verification = {
+      ...verification,
+      status:
+        verification.status === "conflicting" ? "conflicting" : "uncertain",
+      claims: verification.claims.map((c) =>
+        modalityErrors.includes(c) ? { ...c, verdict: "uncertain" } : c,
+      ),
+      reason: `${verification.reason} Source-type audit: caption/transcript claims cite only frame OCR and remain uncertain.`,
+    };
   }
   const citations = [...answer.matchAll(/\[E(\d+)\]/g)].map((m) =>
     Number(m[1]),

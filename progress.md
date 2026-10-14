@@ -90,3 +90,10 @@ Caption checkpoint regression results: 50/50 unit tests, build, browser UI integ
 - Ask now retains the connected form element during same-video redraws, preserving text, focus, selection and input composition. Submit button state and surrounding results still update. Drafts are kept in memory separately per video and restored on tab return; they are not sent to the API before submission.
 - Browser regression types a word, writes a background library update through real IndexedDB, triggers refresh, verifies the same focused textarea and text, continues typing, then switches tabs and verifies the full draft remains. Browser integration passed; 59 core tests passed.
 - Version header/manifest 3.0.3. Reload extension once to activate. A page reload ends the in-memory draft lifetime; persisted draft storage was not added.
+
+## Source modality and stale notices — v3.0.4, 14 October 2026
+
+- User confirmed frame detection and showed 118 caption segments with completed notes. Their model answer incorrectly described garbled frame OCR as later caption text while SAGE marked that claim supported.
+- Frame evidence now carries OCR provenance and engine confidence (explicitly not factual accuracy). Generation instructions preserve modality. Deterministic source-type audit downgrades supported caption/transcript claims whose references consist only of frame OCR; uncertain interpretation still requires human review.
+- Missing-source error notices are scoped to video, module and source/output versions and clear when that context changes. Browser regression verifies a missing-source error clears on module switch. Ask draft/focus regressions continue to pass.
+- 60 unit tests and browser integration passed. Previous notes retain their original saved answer/verdict; regenerate notes to apply new checking. Header/manifest 3.0.4.

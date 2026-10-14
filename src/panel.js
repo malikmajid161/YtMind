@@ -49,7 +49,21 @@ async function api(type, fields = {}) {
   if (r?.error) throw new Error(r.error);
   return r?.data;
 }
+let sourceNoticeContext = null;
+const sourceContext = () =>
+  JSON.stringify([
+    videoId,
+    active,
+    session()?.transcriptVersion,
+    session()?.captionStatus,
+    frames.map((f) => [f.id, f.status]),
+    session()?.outputs?.map((o) => o.id),
+  ]);
 function notice(text, error = false) {
+  sourceNoticeContext =
+    error && text.startsWith("No matching source content yet")
+      ? sourceContext()
+      : null;
   $("#notice").textContent = text;
   $("#notice").className = error ? "error" : "";
   $("#notice").hidden = !text;
@@ -161,6 +175,8 @@ async function refresh(force = false) {
       s?.pinned ? "Unpin video from library" : "Pin video to library",
     );
     frames = s ? await api("FRAMES", { videoId }) : [];
+    if (sourceNoticeContext && sourceNoticeContext !== sourceContext())
+      notice("");
     const next = JSON.stringify([
       active,
       videoId,

@@ -93,3 +93,5 @@ v3.0.1 checkpoint: same-document sender.url retained old ID, causing new SESSION
 v3.0.2: fixed OCR CSP data: WASM fetch by using plain JS loaders plus same-origin binary WASM. SIMD detected and portable fallback packaged. Strict CSP unchanged. 59 unit tests; native packaged OCR; English 7/8; authored Urdu exact/91; all passed with zero external OCR requests. User should see /03.0.2 after one extension reload.
 
 v3.0.3 fixes disappearing Ask input on background redraws by retaining the connected form node and tracking per-video in-memory drafts across tab changes. Real browser regression checks focus, text, continued typing and tab return after an IndexedDB update. 59 core tests and browser checks passed. Drafts do not persist through a full panel reload.
+
+v3.0.4: user confirms frames/captions working. Fixed stale no-source notices and introduced deterministic source-modality downgrade for caption/transcript claims backed only by frame OCR. 60 tests + browser integration passed. Stored old notes remain historical; regenerate for new audit. Human accuracy, captionless native audio and five-video evaluation remain pending.
