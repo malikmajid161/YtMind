@@ -98,6 +98,25 @@ try {
   });
   await watch.goto(`https://www.youtube.com/watch?v=${id}`);
   await watch.locator("#ytmind-launch").waitFor();
+  const previousInstance = await watch
+    .locator("#ytmind-launch")
+    .getAttribute("data-ytmind-instance");
+  await worker.evaluate(async (videoId) => {
+    const tab = (
+      await chrome.tabs.query({ url: "https://www.youtube.com/*" })
+    ).find((t) => t.url?.includes(videoId));
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ["content.js"],
+    });
+  }, id);
+  await expect
+    .poll(() =>
+      watch.locator("#ytmind-launch").getAttribute("data-ytmind-instance"),
+    )
+    .not.toBe(previousInstance);
+  assert.equal(await watch.locator("#ytmind-launch").count(), 1);
+
   await watch.evaluate(() => {
     const stale = document.getElementById("ytmind-launch");
     delete stale.dataset.ytmindVersion;
@@ -108,7 +127,7 @@ try {
   });
   await expect(watch.locator("#ytmind-launch")).toHaveAttribute(
     "data-ytmind-version",
-    "3.0.22",
+    "3.0.23",
     { timeout: 5000 },
   );
   assert.ok(

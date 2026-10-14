@@ -1,3 +1,8 @@
+import { readDrawerWidth, saveDrawerWidth } from "./drawer-preferences.js";
+globalThis.ytmindContentLifetime?.abort();
+const contentLifetime = new AbortController();
+globalThis.ytmindContentLifetime = contentLifetime;
+const contentInstance = crypto.randomUUID();
 import { TranscriptFetcher } from "./transcript.js";
 import { frameSignal, frameDifference } from "./core.js";
 import { youtubeVideoId } from "./source.js";
@@ -71,13 +76,14 @@ function ensureLauncher() {
   const host = document.fullscreenElement || document.body;
   if (!host) return;
   const existing = document.getElementById("ytmind-launch");
-  if (existing && existing.dataset.ytmindVersion === "3.0.22") {
+  if (existing && existing.dataset.ytmindInstance === contentInstance) {
     if (existing.parentElement !== host) host.append(existing);
     return;
   }
   existing?.remove();
   const button = document.createElement("button");
-  button.dataset.ytmindVersion = "3.0.22";
+  button.dataset.ytmindVersion = "3.0.23";
+  button.dataset.ytmindInstance = contentInstance;
   button.id = "ytmind-launch";
   button.textContent = "🧠 YTMind";
   button.title = "Open your video study workspace";
@@ -168,8 +174,7 @@ function ensureLauncher() {
       );
       applyWidth();
     };
-    const saveWidth = () =>
-      chrome.storage.local.set({ drawerWidth: preferredWidth }).catch(() => {});
+    const saveWidth = () => saveDrawerWidth(preferredWidth);
     resize.onpointerup = (event) => {
       resize.releasePointerCapture(event.pointerId);
       saveWidth();
@@ -228,14 +233,10 @@ function ensureLauncher() {
       drawer.remove();
     };
     applyWidth();
-    chrome.storage.local
-      .get("drawerWidth")
-      .then((value) => {
-        if (Number.isFinite(value.drawerWidth))
-          preferredWidth = value.drawerWidth;
-        applyWidth();
-      })
-      .catch(() => {});
+    readDrawerWidth().then((width) => {
+      preferredWidth = width;
+      applyWidth();
+    });
     const close = document.createElement("button");
     close.textContent = "×";
     close.title = "Close YTMind";
@@ -371,7 +372,7 @@ async function capture(manual = false) {
     busy = false;
   }
 }
-chrome.runtime.onMessage.addListener((m, sender, respond) => {
+const handleMessage = (m, sender, respond) => {
   if (sender.id !== chrome.runtime.id) return;
   if (m.type === "OPEN_DRAWER") {
     ensureLauncher();
@@ -422,19 +423,29 @@ chrome.runtime.onMessage.addListener((m, sender, respond) => {
     captions(current, epoch).catch(() => {});
     respond({ ok: true });
   }
-});
-document.addEventListener("yt-navigate-finish", () => {
-  navigationStarted = 0;
-  navigate(true).catch(() => {});
-});
-document.addEventListener("yt-navigate-start", () => {
-  navigationStarted = Date.now();
-  resumeUntil = Math.max(resumeUntil, lease);
-  lease = 0;
-  ++epoch;
-  captionController?.abort();
-});
-setInterval(() => {
+};
+chrome.runtime.onMessage.addListener(handleMessage);
+
+document.addEventListener(
+  "yt-navigate-finish",
+  () => {
+    navigationStarted = 0;
+    navigate(true).catch(() => {});
+  },
+  { signal: contentLifetime.signal },
+);
+document.addEventListener(
+  "yt-navigate-start",
+  () => {
+    navigationStarted = Date.now();
+    resumeUntil = Math.max(resumeUntil, lease);
+    lease = 0;
+    ++epoch;
+    captionController?.abort();
+  },
+  { signal: contentLifetime.signal },
+);
+const contentTimer = setInterval(() => {
   if (!chrome.runtime?.id) return;
   ensureLauncher();
   if (navigationStarted && Date.now() - navigationStarted > 10000) {
@@ -449,3 +460,11 @@ setInterval(() => {
   }
 }, 1000);
 navigate().catch(() => {});
+
+contentLifetime.signal.addEventListener("abort", () => {
+  clearInterval(contentTimer);
+  captionController?.abort();
+  try {
+    chrome.runtime.onMessage.removeListener(handleMessage);
+  } catch {}
+});

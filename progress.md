@@ -219,3 +219,10 @@ Caption checkpoint regression results: 50/50 unit tests, build, browser UI integ
 - Real Uinx1py7Jsg run processed 396 seconds, obtained 38 ASR segments / 893 transcript characters and 1576 English note characters. All six provider calls HTTP200; 77.547 seconds end to end, SAGE uncertain. No human transcription reference or accuracy score. Result metadata tracked in research/results/native-helper-live.json; source audio/transcript/answer remain in ignored artifacts. First English-rewrite failure was corrected with Arabic-aware bounded second-pass rewrite.
 - Native UI-to-helper/ASR/notes pipeline passes in a controlled browser test with mocked media and provider responses; real helper/provider smoke is a separate HTTP-based run, not a claim of manual production Chrome acceptance.
 - 79 unit tests pass. Native extension integration passes. Working dist updated to 3.0.22 without ZIP.
+
+## 2026-10-14 — v3.0.23 Drawer storage/lifecycle fix
+
+- Reported content.js crash attempted chrome.storage.local access after API namespace became unavailable. Width preference reads/writes now tolerate absent storage and synchronous/asynchronous invalid-context errors, falling back to 460px without blocking drawer opening.
+- Launcher ownership uses a per-injection instance ID rather than only version. Same-version reinjection replaces stale onclick closures. Prior current-generation timers, navigation listeners and runtime message listener are disposed when code is reinjected.
+- 81 unit tests pass, including missing/invalidated storage reproductions and valid preference persistence. Native regression reinjects current content bundle, verifies instance replacement and one launcher, then exercises drawer and reload reconnection.
+- Updated working dist to 3.0.23 without ZIP. User must Reload extension to activate changed injected code.
