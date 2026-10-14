@@ -31,13 +31,13 @@ The native packaged extension and offscreen lifecycle pass automated checks. A h
 
 ## Agent workflows
 
-| Workflow              | How to use it                                                                    | Evidence boundary                                                                                 |
-| --------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| Lecture notes and PDF | Notes → generate; Library → generate all pinned lecture notes → PDF or notes ZIP | Deep mode processes every stored source section; watching captures only observed content          |
-| Code files            | Frames → automatic code candidates or Extract source code → download ZIP         | Exact source substrings only; OCR can misread symbols; no missing lines invented or code executed |
-| Multi-video research  | Pin videos, then ask a topic in Library                                          | Retrieved context across pinned evidence; bounded coverage disclosed                              |
-| Mistake detector      | Evidence Lab → compare narration with screen                                     | Nearby narration/OCR excerpts must match stored source text; findings are potential mismatches    |
-| Actions               | Actions → generate; Evidence Lab → tutorial preflight                            | Commands and prerequisites must come from the supplied source                                     |
+| Workflow              | How to use it                                                                      | Evidence boundary                                                                                 |
+| --------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Lecture notes and PDF | Notes → generate; Library → generate all selected lecture notes → PDF or notes ZIP | Deep mode processes every stored source section; watching captures only observed content          |
+| Code files            | Frames → automatic code candidates or Extract source code → download ZIP           | Exact source substrings only; OCR can misread symbols; no missing lines invented or code executed |
+| Multi-video research  | Select videos with the diamond, then ask a topic in Library                        | Retrieved context across selected evidence; bounded coverage disclosed                            |
+| Mistake detector      | Evidence Lab → compare narration with screen                                       | Nearby narration/OCR excerpts must match stored source text; findings are potential mismatches    |
+| Actions               | Actions → generate; Evidence Lab → tutorial preflight                              | Commands and prerequisites must come from the supplied source                                     |
 
 Pin 1–10 lectures for the notes agent. It persists its source snapshots and completed sections, supports pause/continue, and exports the collection. Keep the workspace open while requests are queued. Research reports and graph provenance remain available across sessions.
 
@@ -51,7 +51,7 @@ No general guarantee covers every video type, perfect lyrics, code correctness, 
 
 ## Data, permissions and privacy
 
-Learning data lives in IndexedDB on the extension or browser origin. Unpinned sessions expire after 24 hours; pinned sessions and graph evidence persist until cleared. Cross-workspace writes are serialized, and clearing data invalidates in-flight results. The local media helper caches audio inside ignored artifacts/media-jobs; files older than an hour are removed on subsequent media requests, including after restart.
+Learning data lives in IndexedDB on the extension or browser origin. Video history, sources, generated outputs and graph evidence are saved automatically until cleared. The diamond selects videos for research; it is not required for retention. Opening the workspace refreshes current state while keeping history available in Library. Cross-workspace writes are serialized, and clearing data invalidates in-flight results. The local media helper caches audio inside ignored artifacts/media-jobs; files older than an hour are removed on subsequent media requests, including after restart.
 
 The API key is stored locally and kept out of content scripts, reports and release packages. Groq receives source text for generation/verification and audio for transcription. Local OCR images stay local. Automatic notes and code processing can be disabled in Settings. The local helper receives video identifiers, not API keys. Remove the key separately from clearing learning data.
 

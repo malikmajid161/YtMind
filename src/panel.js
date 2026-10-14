@@ -173,16 +173,14 @@ async function refresh(force = false) {
                 ? "Loading YouTube captions · audio fallback is checked separately"
                 : "No captions yet · add audio or frames"
       : "Your next rabbit hole starts here";
-    $("#retention").textContent = s?.pinned
-      ? "Saved to library"
-      : s
-        ? `${Math.max(0, Math.ceil((s.expiresAt - Date.now()) / 3600000))}h remaining`
-        : "24h session";
+    $("#retention").textContent = s
+      ? "Saved in history"
+      : "History saves automatically";
     $("#pin").textContent = s?.pinned ? "◆" : "◇";
     $("#pin").disabled = !s;
     $("#pin").setAttribute(
       "aria-label",
-      s?.pinned ? "Unpin video from library" : "Pin video to library",
+      s?.pinned ? "Deselect video for research" : "Select video for research",
     );
     frames = s ? await api("FRAMES", { videoId }) : [];
     if (sourceNoticeContext && sourceNoticeContext !== sourceContext())
@@ -294,7 +292,7 @@ function render() {
             ? "Generate notes from your video’s captions and indexed frames. Every key point links back to its source."
             : "Find concrete steps in your video. Missing details stay missing, so you can check the original.",
         );
-    html += `<div class="hint-card"><span>◇</span><div><b>A small habit, a lasting library.</b><br>Pin this video above to keep its sources and notes beyond your 24-hour session.</div></div>`;
+    html += `<div class="hint-card"><span>◇</span><div><b>A small habit, a lasting library.</b><br>Every video and its outputs are saved automatically. Use the diamond to select videos for research.</div></div>`;
     html += sourceTools();
   } else if (active === "chat") {
     html += `<div class="prompt-chips"><button data-prompt="Explain the main idea">The main idea</button><button data-prompt="What prerequisites are mentioned?">Prerequisites</button><button data-prompt="Explain the code shown in the video">Explain the code</button></div><form id="ask-form"><label for="question">Your question</label><textarea id="question" maxlength="2000" placeholder="What would you like to understand?" required></textarea><button id="send-question" class="primary" type="submit" ${!s || requestBusy ? "disabled" : ""}>${requestBusy ? "Processing…" : "Send question"}<span aria-hidden="true">↗</span></button><small class="ask-help">Ctrl+Enter to send · Enter for a new line</small></form>`;
@@ -360,20 +358,28 @@ function render() {
         );
   } else if (active === "library") {
     const pinned = state.sessions.filter((s) => s.pinned);
-    html += `<section class="batch-card"><h3>Lecture notes agent</h3><p class="muted">Generate notes for 1–10 pinned lectures. Every captured source section is processed through Groq; progress is saved between requests. Keep this workspace open.</p><div class="source-controls"><button id="batch-start" class="primary" ${!pinned.length || requestBusy ? "disabled" : ""}>Generate all lecture notes</button>${state.batch && state.batch.status !== "complete" ? `<button id="batch-resume" class="secondary" ${requestBusy ? "disabled" : ""}>Continue saved batch</button><button id="batch-discard" class="text-button" ${requestBusy ? "disabled" : ""}>Discard batch progress</button>` : ""}${batchRunning ? '<button id="batch-pause" class="secondary">Pause after current section</button>' : ""}</div>${state.batch ? `<ul>${state.batch.entries.map((e) => `<li>${esc(e.title)} · ${e.nextBatch}/${e.totalBatches} sections · ${esc(e.status)}${e.error ? ` · ${esc(e.error)}` : ""}</li>`).join("")}</ul><div class="toolbar"><button id="batch-export" class="secondary">Download lecture notes ZIP</button><button id="batch-pdf" class="secondary">Save lecture notes as PDF</button></div>` : ""}</section>`;
-    html += pinned.length
-      ? pinned
+    const history = [...state.sessions].sort(
+      (a, b) => (b.lastSeenAt || b.createdAt) - (a.lastSeenAt || a.createdAt),
+    );
+    html += `<section class="batch-card"><h3>Lecture notes agent</h3><p class="muted">Generate notes for 1–10 selected lectures. Every captured source section is processed through Groq; progress is saved between requests. Keep this workspace open.</p><div class="source-controls"><button id="batch-start" class="primary" ${!pinned.length || requestBusy ? "disabled" : ""}>Generate all lecture notes</button>${state.batch && state.batch.status !== "complete" ? `<button id="batch-resume" class="secondary" ${requestBusy ? "disabled" : ""}>Continue saved batch</button><button id="batch-discard" class="text-button" ${requestBusy ? "disabled" : ""}>Discard batch progress</button>` : ""}${batchRunning ? '<button id="batch-pause" class="secondary">Pause after current section</button>' : ""}</div>${state.batch ? `<ul>${state.batch.entries.map((e) => `<li>${esc(e.title)} · ${e.nextBatch}/${e.totalBatches} sections · ${esc(e.status)}${e.error ? ` · ${esc(e.error)}` : ""}</li>`).join("")}</ul><div class="toolbar"><button id="batch-export" class="secondary">Download lecture notes ZIP</button><button id="batch-pdf" class="secondary">Save lecture notes as PDF</button></div>` : ""}</section>`;
+    html += `<h3>Video history · ${history.length}</h3>`;
+    html += history.length
+      ? history
           .map(
             (s) =>
-              `<article class="library-card"><span>◇</span><div><h3><a href="${esc(s.url)}" target="_blank" rel="noreferrer">${esc(s.title)} ↗</a></h3><small>${s.transcript.length} segments · ${s.outputs?.length || 0} saved outputs</small></div><button class="icon-button" data-unpin="${s.id}" aria-label="Unpin ${esc(s.title)}">×</button></article>`,
+              `<article class="library-card"><span>${s.pinned ? "◆" : "◇"}</span><div><h3><a href="${esc(s.url)}" target="_blank" rel="noreferrer">${esc(s.title)} ↗</a></h3><small>${s.transcript.length} segments · ${s.outputs?.length || 0} saved outputs</small>${
+                s.outputs?.length
+                  ? `<details data-history-id="${s.id}"><summary>View saved notes and answers (${s.outputs.length})</summary><div class="history-outputs"></div></details>`
+                  : ""
+              }</div><button class="icon-button" data-research-video="${s.id}" aria-label="${s.pinned ? "Deselect" : "Select"} ${esc(s.title)} for research">${s.pinned ? "◆" : "◇"}</button></article>`,
           )
           .join("")
       : empty(
           "◇",
           "Build your own trail.",
-          "Pin a video using the diamond beside its title. Its evidence stays available for cross-video research.",
+          "Open a video to start your history. Sources and generated outputs are saved automatically.",
         );
-    html += `<form id="research-form" class="research-form"><label for="research-topic">Explore a topic across pinned videos</label><input id="research-topic" placeholder="e.g. State management tradeoffs" maxlength="2000" required><button class="primary" ${!pinned.length || requestBusy ? "disabled" : ""}>Generate research report<span>↗</span></button></form>`;
+    html += `<form id="research-form" class="research-form"><label for="research-topic">Explore a topic across selected videos</label><input id="research-topic" placeholder="e.g. State management tradeoffs" maxlength="2000" required><button class="primary" ${!pinned.length || requestBusy ? "disabled" : ""}>Generate research report<span>↗</span></button></form>`;
     const savedReport =
       researchResult ||
       state.sessions
@@ -789,6 +795,12 @@ document.addEventListener("click", async (e) => {
         await chrome.tabs.create({
           url: `https://www.youtube.com/watch?v=${b.dataset.video}&t=${Math.floor(Number(b.dataset.seek))}s`,
         });
+      return;
+    }
+    if (b.dataset.researchVideo) {
+      const item = state.sessions.find((s) => s.id === b.dataset.researchVideo);
+      await api("PIN", { videoId: item.id, pinned: !item.pinned });
+      await refresh(true);
       return;
     }
     if (b.dataset.unpin) {
@@ -1490,3 +1502,28 @@ document.addEventListener("click", async (e) => {
 window.addEventListener("pagehide", () => {
   batchPaused = true;
 });
+
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) refresh(true);
+});
+
+document.addEventListener(
+  "toggle",
+  (event) => {
+    const details = event.target;
+    if (!details.matches?.("details[data-history-id]")) return;
+    const target = details.querySelector(".history-outputs");
+    const record = state.sessions.find(
+      (s) => s.id === details.dataset.historyId,
+    );
+    target.innerHTML = details.open
+      ? (record?.outputs || [])
+          .filter((o) => !o.processing)
+          .slice()
+          .reverse()
+          .map(outputHTML)
+          .join("")
+      : "";
+  },
+  true,
+);

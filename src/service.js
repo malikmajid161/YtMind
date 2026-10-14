@@ -49,6 +49,7 @@ export function createService({
         return mutate(() =>
           store.session({
             id: m.videoId,
+            saved: true,
             title: String(m.title || "YouTube video").slice(0, 300),
             audioPrimary:
               typeof m.audioPrimary === "boolean" ? m.audioPrimary : undefined,
@@ -201,7 +202,10 @@ export function createService({
         return;
       }
       case "STATE":
-        await mutate(() => store.cleanup());
+        await mutate(async () => {
+          await store.preserveHistory();
+          return store.cleanup();
+        });
         return {
           sessions: await store.read("sessions"),
           nodes: await store.read("nodes"),
@@ -655,5 +659,12 @@ export function createService({
       busy.delete(m.videoId);
     }
   }
-  return { dispatch, cleanup: () => mutate(() => store.cleanup()) };
+  return {
+    dispatch,
+    cleanup: () =>
+      mutate(async () => {
+        await store.preserveHistory();
+        return store.cleanup();
+      }),
+  };
 }

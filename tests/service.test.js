@@ -248,3 +248,60 @@ test("Roman Urdu questions retain source context and speaking notes process the 
     globalThis.fetch = previousFetch;
   }
 });
+
+test("automatic history retains unpinned sources and outputs after expiry and reopening", async () => {
+  const name = "history-" + crypto.randomUUID();
+  const store = new Store(name);
+  const old = await store.session({ id: "abcdefghijk", title: "Old lecture" });
+  await store.put("sessions", {
+    ...old,
+    expiresAt: 0,
+    outputs: [
+      {
+        id: "saved-answer",
+        mode: "notes",
+        answer: "Stored explanation",
+        evidence: [],
+      },
+    ],
+  });
+  await store.addFrame({
+    id: "old-frame",
+    videoId: old.id,
+    timestamp: 5,
+    createdAt: 1,
+    image: "stored-image",
+  });
+  const factory = () =>
+    createService({
+      store: new Store(name),
+      readSettings: async () => defaults,
+      writeSettings: async () => {},
+    });
+  const service = factory();
+  const state = await service.dispatch({ type: "STATE" });
+  assert.equal(state.sessions.length, 1);
+  assert.equal(state.sessions[0].saved, true);
+  assert.equal(state.sessions[0].pinned, false);
+  await service.cleanup();
+  const reopened = factory();
+  assert.equal(
+    (await reopened.dispatch({ type: "STATE" })).sessions[0].outputs[0].answer,
+    "Stored explanation",
+  );
+  assert.equal(
+    (await reopened.dispatch({ type: "FRAMES", videoId: old.id })).length,
+    1,
+  );
+  await reopened.dispatch({
+    type: "SESSION",
+    videoId: "lmnopqrstuv",
+    title: "New video",
+  });
+  assert.equal(
+    (await reopened.dispatch({ type: "STATE" })).sessions.find(
+      (s) => s.id === "lmnopqrstuv",
+    ).saved,
+    true,
+  );
+});

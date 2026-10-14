@@ -226,3 +226,11 @@ Caption checkpoint regression results: 50/50 unit tests, build, browser UI integ
 - Launcher ownership uses a per-injection instance ID rather than only version. Same-version reinjection replaces stale onclick closures. Prior current-generation timers, navigation listeners and runtime message listener are disposed when code is reinjected.
 - 81 unit tests pass, including missing/invalidated storage reproductions and valid preference persistence. Native regression reinjects current content bundle, verifies instance replacement and one launcher, then exercises drawer and reload reconnection.
 - Updated working dist to 3.0.23 without ZIP. User must Reload extension to activate changed injected code.
+
+## 2026-10-14 — v3.0.24 Refresh without losing history
+
+- Opening the drawer creates a fresh workspace document and reads current stored state. Returning to a visible panel refreshes current state without clearing sources/outputs.
+- Production SESSION records save automatically; previously stored records are marked saved before cleanup. Saved records no longer expire after 24 hours, including unpinned videos. Existing already-deleted records cannot be reconstructed.
+- Library lists all saved video history sorted by most recent visit, and saved notes/answers can be opened there. Output bodies are rendered on demand when a history entry is expanded. Diamond is selection for research, independent of retention.
+- Width/storage lifecycle repair from 3.0.23 also passes the final native reinjection/reload regression after retaining both version and instance checks for malformed stale launchers.
+- 82 unit tests pass, including old unpinned source/output/frame retention across cleanup and service reopening. Browser integration verifies unpinned history output access; native extension integration passes. Working dist 3.0.24 updated directly without ZIP.

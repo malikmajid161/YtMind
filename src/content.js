@@ -76,13 +76,17 @@ function ensureLauncher() {
   const host = document.fullscreenElement || document.body;
   if (!host) return;
   const existing = document.getElementById("ytmind-launch");
-  if (existing && existing.dataset.ytmindInstance === contentInstance) {
+  if (
+    existing &&
+    existing.dataset.ytmindInstance === contentInstance &&
+    existing.dataset.ytmindVersion === "3.0.24"
+  ) {
     if (existing.parentElement !== host) host.append(existing);
     return;
   }
   existing?.remove();
   const button = document.createElement("button");
-  button.dataset.ytmindVersion = "3.0.23";
+  button.dataset.ytmindVersion = "3.0.24";
   button.dataset.ytmindInstance = contentInstance;
   button.id = "ytmind-launch";
   button.textContent = "🧠 YTMind";

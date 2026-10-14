@@ -137,6 +137,17 @@ export async function testStudio(browser, port = 4174) {
     assert.ok(
       (await page.locator(".result").textContent()).includes("npm install"),
     );
+    await page.locator('[data-generate="notes"]:enabled').waitFor();
+    await page.locator('[data-tab="library"]').click();
+    assert.equal(await page.locator(".library-card").count(), 1);
+    await page.locator("details[data-history-id] summary").click();
+    await page.locator(".history-outputs .result").waitFor();
+    assert.ok(
+      (await page.locator(".history-outputs").textContent()).includes(
+        "npm install",
+      ),
+    );
+    await page.locator('[data-tab="notes"]').click();
     await page.locator("#pin").click();
     await page.locator('[data-tab="actions"]').click();
     await page.locator('[data-generate="actions"]').click();

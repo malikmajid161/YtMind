@@ -59,7 +59,13 @@ export class Store {
   }
   async session(meta) {
     let old = await this.read("sessions", meta.id);
-    if (old && !old.pinned && old.expiresAt <= Date.now()) {
+    if (
+      old &&
+      !old.saved &&
+      !meta.saved &&
+      !old.pinned &&
+      old.expiresAt <= Date.now()
+    ) {
       await this.cleanup();
       old = null;
     }
@@ -68,6 +74,8 @@ export class Store {
           ...old,
           title: meta.title || old.title,
           audioPrimary: meta.audioPrimary ?? old.audioPrimary,
+          saved: meta.saved ?? old.saved,
+          lastSeenAt: Date.now(),
         }
       : {
           ...meta,
@@ -77,6 +85,7 @@ export class Store {
           pinned: false,
           outputs: [],
           captionStatus: "pending",
+          lastSeenAt: Date.now(),
         };
     await this.put("sessions", value);
     return value;
@@ -103,9 +112,17 @@ export class Store {
         s.delete(list.sort((a, b) => a.createdAt - b.createdAt)[0].id);
     });
   }
+  async preserveHistory() {
+    const records = (await this.read("sessions")).filter((s) => !s.saved);
+    if (!records.length) return;
+    await this.tx(["sessions"], (transaction) => {
+      const sessions = transaction.objectStore("sessions");
+      for (const record of records) sessions.put({ ...record, saved: true });
+    });
+  }
   async cleanup(now = Date.now()) {
     const expired = (await this.read("sessions")).filter(
-      (s) => !s.pinned && s.expiresAt <= now,
+      (s) => !s.saved && !s.pinned && s.expiresAt <= now,
     );
     const ids = new Set(expired.map((s) => s.id)),
       frames = await this.read("frames");
