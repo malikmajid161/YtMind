@@ -1,5 +1,6 @@
 import { build } from "esbuild";
-import { cp, mkdir, rm, readdir } from "node:fs/promises";
+import { cp, mkdir, rm, readdir, readFile, writeFile } from "node:fs/promises";
+import { wrapBrowserCore } from "./ocr-loader.mjs";
 import path from "node:path";
 await rm("dist", { recursive: true, force: true });
 await mkdir("dist/ocr", { recursive: true });
@@ -31,10 +32,21 @@ await cp(
 );
 for (const file of await readdir("node_modules/tesseract.js-core")) {
   if (/^tesseract-core(?:-simd)?(?:-lstm)?\.(?:js|wasm)$/.test(file))
-    await cp(
-      path.join("node_modules/tesseract.js-core", file),
-      path.join("dist/ocr", file),
-    );
+    if (file.endsWith(".js"))
+      await writeFile(
+        path.join("dist/ocr", file),
+        wrapBrowserCore(
+          await readFile(
+            path.join("node_modules/tesseract.js-core", file),
+            "utf8",
+          ),
+        ),
+      );
+    else
+      await cp(
+        path.join("node_modules/tesseract.js-core", file),
+        path.join("dist/ocr", file),
+      );
 }
 await cp(
   "node_modules/@tesseract.js-data/eng/4.0.0_best_int/eng.traineddata.gz",

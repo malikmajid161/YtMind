@@ -1,0 +1,23 @@
+{
+  "scope": "Rejected sparse-text segmentation trial on eight authored English OCR fixtures; observations retained from the local test run",
+  "mode": "SPARSE_TEXT (11)",
+  "sampleSize": 8,
+  "exactMatchRate": 0.75,
+  "meanCharacterErrorRate": 0.044956140350877194,
+  "externalRequests": 0,
+  "observedFailures": [
+    {
+      "id": "code-40",
+      "expected": "const count = 123;",
+      "actual": "= = const count 123;",
+      "confidence": 91
+    },
+    {
+      "id": "code-26",
+      "expected": "const [count, setCount] = useState(0);",
+      "actual": "const [count, setCount] = useState(®);",
+      "confidence": 81
+    }
+  ],
+  "decision": "Rejected because code accuracy degraded; production default restored (7/8 exact, CER 0.003289473684210526)"
+}

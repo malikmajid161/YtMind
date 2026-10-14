@@ -97,3 +97,12 @@ Caption checkpoint regression results: 50/50 unit tests, build, browser UI integ
 - Frame evidence now carries OCR provenance and engine confidence (explicitly not factual accuracy). Generation instructions preserve modality. Deterministic source-type audit downgrades supported caption/transcript claims whose references consist only of frame OCR; uncertain interpretation still requires human review.
 - Missing-source error notices are scoped to video, module and source/output versions and clear when that context changes. Browser regression verifies a missing-source error clears on module switch. Ask draft/focus regressions continue to pass.
 - 60 unit tests and browser integration passed. Previous notes retain their original saved answer/verdict; regenerate notes to apply new checking. Header/manifest 3.0.4.
+
+## Tiny-line OCR handling — v3.0.5, 14 October 2026
+
+- User reported Image too small to scale (1x36 vs minimum width 3). The diagnostic can refer to an internal line crop rather than the captured frame dimensions.
+- Added decoded-image size validation: inputs narrower or shorter than three pixels return no text and never enter the OCR engine. Pixel data is not fabricated or enlarged into claimed evidence.
+- Browser loader adapter classifies only the two known skipped-line diagnostics as informational messages. Unknown warnings, aborts and exceptions retain their original reporting/behavior; this is diagnostic severity handling, not a claim that unreadable text has become readable.
+- Tested a sparse-text segmentation alternative, observed regression from 7/8 to 6/8 exact English fixtures and higher character error, and reverted it. Trial observations retained in research/results/ocr-segmentation-trial.json.
+- 61 unit tests passed, including diagnostic routing. Actual browser tests cover 1x36 and 2x36 inputs, then readable frames and two workers. English baseline restored to 7/8 exact, Urdu clean phrase exact/confidence 91, packaged extension checks passed. No external OCR requests.
+- Header/manifest v3.0.5; one extension reload applies the new adapter. An unreadable fragment remains absent from recognized text; actual user frame accuracy was not measured.

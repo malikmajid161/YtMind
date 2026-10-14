@@ -11,6 +11,11 @@ const asset = (path) =>
 export async function recognize(image, slot = 0, language = "eng") {
   if (!["eng", "urd", "eng+urd"].includes(language))
     throw new Error("Unsupported OCR language.");
+  const decoded = new Image();
+  decoded.src = image;
+  await decoded.decode();
+  if (decoded.naturalWidth < 3 || decoded.naturalHeight < 3)
+    return { text: "", confidence: 0, reason: "image-too-small" };
   const corePath = asset(await coreFile);
   if (workers[slot]?.language !== language) {
     if (workers[slot]) await (await workers[slot].promise).terminate();

@@ -109,6 +109,24 @@ try {
     });
   }
   // Exercise two independent slots with concurrent recognition, not mocked OCR.
+  const tinyInputs = await page.evaluate(async () => {
+    const { recognize } = await import("/ocr.js");
+    const results = [];
+    for (const width of [1, 2]) {
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = 36;
+      const ctx = canvas.getContext("2d");
+      ctx.fillRect(0, 0, width, 36);
+      results.push(await recognize(canvas.toDataURL()));
+    }
+    return results;
+  });
+  assert.ok(
+    tinyInputs.every(
+      (result) => result.text === "" && result.reason === "image-too-small",
+    ),
+  );
   const concurrent = await page.evaluate(async () => {
     const { recognize } = await import("/ocr.js");
     const images = ["WORKER ONE 123", "WORKER TWO 456"].map((text) => {
@@ -143,6 +161,7 @@ try {
       ramGiB: Math.round(os.totalmem() / 2 ** 30),
     },
     sampleSize: results.length,
+    tinyInputsSkipped: tinyInputs.length,
     exactMatchRate: results.filter((r) => r.exactMatch).length / results.length,
     meanCharacterErrorRate:
       results.reduce((n, r) => n + r.characterErrorRate, 0) / results.length,
