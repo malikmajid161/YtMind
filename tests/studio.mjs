@@ -135,6 +135,60 @@ export async function testStudio(browser, port = 4174) {
     await page.locator('[data-generate="actions"]').click();
     await page.locator(".result").waitFor();
     await page.locator('[data-tab="chat"]').click();
+    await page.locator("#question").pressSequentially("Explain");
+    await page.evaluate(async () => {
+      window.fixtureQuestionNode = document.querySelector("#question");
+      await new Promise((resolve, reject) => {
+        const open = indexedDB.open("ytmind-studio");
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const db = open.result,
+            tx = db.transaction("sessions", "readwrite");
+          const store = tx.objectStore("sessions");
+          const request = store.get(
+            localStorage.getItem("ytmind-studio-active"),
+          );
+          request.onsuccess = () =>
+            store.put({ ...request.result, pinned: false });
+          tx.oncomplete = () => {
+            db.close();
+            resolve();
+          };
+          tx.onerror = () => reject(tx.error);
+        };
+      });
+      window.dispatchEvent(
+        new CustomEvent("ytmind-local", {
+          detail: { type: "FRAME_AVAILABLE" },
+        }),
+      );
+    });
+    await page.waitForFunction(
+      () => document.querySelector("#pin").textContent === "◇",
+    );
+    assert.equal(await page.locator("#question").inputValue(), "Explain");
+    assert.equal(
+      await page.evaluate(
+        () =>
+          document.activeElement === window.fixtureQuestionNode &&
+          document.querySelector("#question") === window.fixtureQuestionNode,
+      ),
+      true,
+    );
+    await page
+      .locator("#question")
+      .pressSequentially(" the installation steps");
+    assert.equal(
+      await page.locator("#question").inputValue(),
+      "Explain the installation steps",
+    );
+    await page.locator('[data-tab="notes"]').click();
+    await page.locator('[data-tab="chat"]').click();
+    assert.equal(
+      await page.locator("#question").inputValue(),
+      "Explain the installation steps",
+    );
+    await page.locator("#pin").click();
     await page.locator("#question").fill("npm install");
     await page.locator("#ask-form .primary").click();
     await page.locator(".result").waitFor();

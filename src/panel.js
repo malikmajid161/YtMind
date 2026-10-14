@@ -55,6 +55,9 @@ function notice(text, error = false) {
   $("#notice").hidden = !text;
 }
 const session = () => state.sessions.find((s) => s.id === videoId);
+const questionDrafts = new Map();
+let renderedVideoId = null,
+  renderedTab = null;
 async function content(type, fields = {}) {
   if (studioMode) {
     if (type === "SEEK") {
@@ -219,6 +222,12 @@ function empty(icon, title, description) {
   return `<div class="empty"><span class="empty-icon">${icon}</span><h3>${title}</h3><p>${description}</p></div>`;
 }
 function render() {
+  const oldAskForm = $("#ask-form");
+  if (oldAskForm)
+    questionDrafts.set(
+      renderedVideoId,
+      oldAskForm.querySelector("#question").value,
+    );
   for (const b of document.querySelectorAll("[data-tab]")) {
     b.classList.toggle("active", b.dataset.tab === active);
     b.setAttribute("aria-current", b.dataset.tab === active ? "page" : "false");
@@ -351,7 +360,38 @@ function render() {
             `<h3>${esc(entry.title)}</h3>` + outputHTML(combineParts(parts));
       }
   }
-  $("#workspace").innerHTML = html;
+  const view = $("#workspace");
+  if (
+    oldAskForm &&
+    active === "chat" &&
+    renderedTab === "chat" &&
+    renderedVideoId === videoId
+  ) {
+    // Keep the form connected so background updates cannot interrupt typing,
+    // cursor selection or input-method composition.
+    const next = document.createElement("div");
+    next.innerHTML = html;
+    const updatedForm = next.querySelector("#ask-form");
+    oldAskForm.querySelector("button[type=submit]").disabled =
+      updatedForm.querySelector("button[type=submit]").disabled;
+    for (const child of [...view.childNodes])
+      if (child !== oldAskForm) child.remove();
+    let afterForm = false;
+    for (const child of [...next.childNodes]) {
+      if (child === updatedForm) {
+        afterForm = true;
+        continue;
+      }
+      if (afterForm) view.append(child);
+      else view.insertBefore(child, oldAskForm);
+    }
+  } else {
+    view.innerHTML = html;
+    if (active === "chat")
+      $("#question").value = questionDrafts.get(videoId) || "";
+  }
+  renderedVideoId = videoId;
+  renderedTab = active;
   if (active === "graph") drawGraph();
 }
 function sourceTools() {
@@ -847,6 +887,8 @@ document.addEventListener("submit", async (e) => {
   }
 });
 document.addEventListener("input", (e) => {
+  if (e.target.id === "question")
+    questionDrafts.set(renderedVideoId, e.target.value);
   if (e.target.id === "graph-search") drawGraph(e.target.value);
 });
 document.addEventListener("keydown", (e) => {

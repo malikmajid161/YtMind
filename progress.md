@@ -83,3 +83,10 @@ Caption checkpoint regression results: 50/50 unit tests, build, browser UI integ
 - Added direct pinned detector dependency and bundled Apache license. Build excludes embedded .wasm.js variants.
 - 59 core tests passed. Packaged extension OCR passed with a CSP-error assertion and a check that its selected loader contains no embedded WASM payload. English suite: 7/8 exact, two workers passed, zero external requests. Clean Urdu fixture: exact, confidence 91, zero external requests.
 - Manifest/header version 3.0.2; reload loaded extension once to activate this fix. This fixes the OCR loading error; it does not establish captionless native-audio accuracy.
+
+## Ask typing correction — v3.0.3, 14 October 2026
+
+- User reported the Ask draft disappearing after typing a word. Background state changes rebuilt the workspace and replaced the focused textarea.
+- Ask now retains the connected form element during same-video redraws, preserving text, focus, selection and input composition. Submit button state and surrounding results still update. Drafts are kept in memory separately per video and restored on tab return; they are not sent to the API before submission.
+- Browser regression types a word, writes a background library update through real IndexedDB, triggers refresh, verifies the same focused textarea and text, continues typing, then switches tabs and verifies the full draft remains. Browser integration passed; 59 core tests passed.
+- Version header/manifest 3.0.3. Reload extension once to activate. A page reload ends the in-memory draft lifetime; persisted draft storage was not added.
