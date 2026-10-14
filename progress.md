@@ -135,3 +135,9 @@ Caption checkpoint regression results: 50/50 unit tests, build, browser UI integ
 - Guarded an observed source-mixing path: visible transcript DOM is reused immediately only when initial player metadata matches the requested video. After SPA navigation, unchanged old transcript text is rejected instead of silently imported under the new title. Existing incorrectly saved sources must be recaptured; this does not rewrite historical records or prove that all source-mixing causes are eliminated.
 - 68 unit tests pass, including related-answer provenance and stale transcript regression. Native unpacked integration verifies the actual embedded UI loads from the on-page click and indexing starts, with mocked Groq and a controlled YouTube fixture. Native YouTube PWA and unrestricted production-page compatibility remain unmeasured.
 - Final browser integration passes. Native drawer close/reopen checks pass. Built installable 3.0.8 ZIP; reload extension and refresh already-open YouTube tabs once to replace the older injected button.
+
+## 2026-10-14 — v3.0.9 Restore the floating launcher
+
+- Reattach content scripts to existing YouTube video tabs after extension installation/update/reload, independently of opening a workspace panel.
+- Launcher maintenance runs every second while the extension context is valid. A removed button is recreated without duplicate buttons, and the launcher is moved into the fullscreen host when appropriate. Higher stacking order avoids ordinary YouTube overlays hiding it. Launcher no longer disappears simply because navigation has no recognized video ID.
+- 68 unit tests and packaged MV3 integration pass. Regression removes the actual launcher DOM node, verifies it returns within five seconds with exactly one button, and then exercises drawer opening, closing and reopening. Controlled YouTube fixture rather than a measured production-page acceptance result.

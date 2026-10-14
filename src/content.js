@@ -59,22 +59,14 @@ async function captions(videoId, token) {
     autoRequested: Date.now() < lease,
   });
 }
-async function navigate(force = false) {
-  const next = id();
-  if (next === current && !force) return;
-  const resume = Date.now() < Math.max(lease, resumeUntil);
-  current = next;
-  const token = ++epoch;
-  captionController?.abort();
-  captionController = new AbortController();
-  lease = next && resume ? Date.now() + 15000 : 0;
-  resumeUntil = 0;
-  lastPrint = null;
-  lastCapture = 0;
-  lastSnapshot = 0;
-  endedVideo = null;
-  document.getElementById("ytmind-launch")?.remove();
-  if (!next) return;
+function ensureLauncher() {
+  const host = document.fullscreenElement || document.body;
+  if (!host) return;
+  const existing = document.getElementById("ytmind-launch");
+  if (existing) {
+    if (existing.parentElement !== host) host.append(existing);
+    return;
+  }
   const button = document.createElement("button");
   button.id = "ytmind-launch";
   button.textContent = "🧠 YTMind";
@@ -83,7 +75,7 @@ async function navigate(force = false) {
     position: "fixed",
     right: "24px",
     bottom: "24px",
-    zIndex: "2000",
+    zIndex: "2147483646",
     background: "#b9f078",
     color: "#172316",
     border: "1px solid #243a23",
@@ -142,7 +134,25 @@ async function navigate(force = false) {
     document.body.append(drawer);
     button.textContent = "🧠 YTMind";
   };
-  document.body.append(button);
+  host.append(button);
+}
+async function navigate(force = false) {
+  const next = id();
+  if (next === current && !force) return;
+  const resume = Date.now() < Math.max(lease, resumeUntil);
+  current = next;
+  const token = ++epoch;
+  captionController?.abort();
+  captionController = new AbortController();
+  lease = next && resume ? Date.now() + 15000 : 0;
+  resumeUntil = 0;
+  lastPrint = null;
+  lastCapture = 0;
+  lastSnapshot = 0;
+  endedVideo = null;
+  ensureLauncher();
+  if (!next) return;
+  ensureLauncher();
   await send({
     type: "SESSION",
     videoId: next,
@@ -285,6 +295,7 @@ document.addEventListener("yt-navigate-start", () => {
 });
 setInterval(() => {
   if (!chrome.runtime?.id) return;
+  ensureLauncher();
   if (navigationStarted && Date.now() - navigationStarted > 10000) {
     navigationStarted = 0;
     navigate(true).catch(() => {});

@@ -98,6 +98,10 @@ try {
   });
   await watch.goto(`https://www.youtube.com/watch?v=${id}`);
   await watch.locator("#ytmind-launch").waitFor();
+  await watch.evaluate(() => document.getElementById("ytmind-launch").remove());
+  await watch.locator("#ytmind-launch").waitFor({ timeout: 5000 });
+  assert.equal(await watch.locator("#ytmind-launch").count(), 1);
+
   await watch.locator("#ytmind-launch").click();
   const embedded = watch.frameLocator("#ytmind-drawer iframe");
   await embedded.locator(".tabs").waitFor();

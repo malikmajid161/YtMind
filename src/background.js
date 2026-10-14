@@ -159,6 +159,18 @@ chrome.runtime.onInstalled.addListener(() => {
   chrome.storage.local.setAccessLevel({ accessLevel: "TRUSTED_CONTEXTS" });
   chrome.alarms.create("cleanup", { periodInMinutes: 60 });
   cleanup();
+  // Updating/reloading an extension does not refresh existing YouTube tabs.
+  // Reattach their content script so the on-page launcher returns immediately.
+  chrome.tabs
+    .query({ url: "https://www.youtube.com/*" })
+    .then((tabs) =>
+      Promise.allSettled(
+        tabs
+          .filter((tab) => youtubeVideoId(tab.url))
+          .map((tab) => connectVideoTab(tab.id)),
+      ),
+    )
+    .catch(() => {});
 });
 chrome.runtime.onStartup.addListener(cleanup);
 chrome.alarms.onAlarm.addListener((a) => {
