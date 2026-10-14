@@ -141,3 +141,8 @@ Caption checkpoint regression results: 50/50 unit tests, build, browser UI integ
 - Reattach content scripts to existing YouTube video tabs after extension installation/update/reload, independently of opening a workspace panel.
 - Launcher maintenance runs every second while the extension context is valid. A removed button is recreated without duplicate buttons, and the launcher is moved into the fullscreen host when appropriate. Higher stacking order avoids ordinary YouTube overlays hiding it. Launcher no longer disappears simply because navigation has no recognized video ID.
 - 68 unit tests and packaged MV3 integration pass. Regression removes the actual launcher DOM node, verifies it returns within five seconds with exactly one button, and then exercises drawer opening, closing and reopening. Controlled YouTube fixture rather than a measured production-page acceptance result.
+
+## 2026-10-14 — v3.0.10 Launcher icon
+
+- Replaced platform-dependent pink brain emoji with an inline vector brain mark in the launcher's dark green brand color. Consistent 24px sizing, text alignment, and accessible Open YTMind label. Drawer interaction remains unchanged.
+- Built installable 3.0.10 release.

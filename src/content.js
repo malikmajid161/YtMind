@@ -72,6 +72,9 @@ function ensureLauncher() {
   button.textContent = "🧠 YTMind";
   button.title = "Open your video study workspace";
   Object.assign(button.style, {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
     position: "fixed",
     right: "24px",
     bottom: "24px",
