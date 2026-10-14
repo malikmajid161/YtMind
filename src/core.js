@@ -176,7 +176,7 @@ export function evidenceBlock(evidence) {
   return evidence
     .map(
       (c, i) =>
-        `[E${i + 1}] ${c.title} | ${time(c.startTime)} | ${c.kind}${c.role ? " | " + c.role : ""}${c.kind === "frame" ? ` | OCR of visible pixels, not a caption transcript${Number.isFinite(c.confidence) ? ` | OCR engine confidence ${Math.round(c.confidence)} (not factual accuracy)` : ""}` : ""}\n${c.text}`,
+        `[E${i + 1}] Video title metadata (not extracted source text): ${c.title} | ${time(c.startTime)} | ${c.kind}${c.role ? " | " + c.role : ""}${c.kind === "frame" ? ` | OCR of visible pixels, not a caption transcript${Number.isFinite(c.confidence) ? ` | OCR engine confidence ${Math.round(c.confidence)} (not factual accuracy)` : ""}` : ""}\nEXTRACTED SOURCE TEXT:\n${c.text}`,
     )
     .join("\n\n");
 }

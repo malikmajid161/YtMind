@@ -30,9 +30,37 @@ export async function generate(
     throw new Error(
       "No readable source text is available yet. Saved summaries and frame images alone are not new source evidence; capture captions, audio, or readable frame text first.",
     );
+  if (
+    ["notes", "actions", "speaking"].includes(mode) &&
+    evidence.every((e) => e.kind === "frame") &&
+    !evidence.some(
+      (e) =>
+        (e.text.match(/[\p{L}\p{M}]{2,}/gu) || []).length >= 4 ||
+        /\b(?:const|function|def|class|import)\b|^\s*[A-Za-z_]\w*\s*=\s*\d/u.test(
+          e.text,
+        ),
+    )
+  ) {
+    return {
+      id: crypto.randomUUID(),
+      mode,
+      query,
+      createdAt: Date.now(),
+      evidence,
+      answer:
+        "## Not enough readable source\n\nOnly a short fragment of on-screen text was captured. It is not enough to summarize the video or its audio. The video title is metadata and cannot establish what was said or shown.\n\nTry **Re-read in Urdu** for Urdu artwork, or add audio/captions before generating notes again.",
+      verification: {
+        status: "unchecked",
+        claims: [],
+        reason:
+          "Insufficient extracted source text; no content summary was generated.",
+      },
+      alternative: "",
+    };
+  }
   const source = evidenceBlock(evidence),
     request = `TASK: ${tasks[mode] || tasks.chat}\nQUESTION: ${query}\nEVIDENCE:\n${source}`;
-  const generationPolicy = `${policy}\nPreserve source modality: frame evidence is OCR of visible pixels, never a transcript of spoken words. Garbled frame OCR cannot establish that captions or audio become garbled. Distinguish source transcription uncertainty from image-recognition uncertainty. Do not turn ambiguous devotional references into verified theological interpretations.`;
+  const generationPolicy = `${policy}\nVideo titles are metadata, not extracted text. Never claim that a title or its words appeared in a frame, were spoken, or were read by OCR unless EXTRACTED SOURCE TEXT explicitly contains them. Never translate a title as if it were captured lyrics. Preserve source modality: frame evidence is OCR of visible pixels, never a transcript of spoken words. Garbled frame OCR cannot establish that captions or audio become garbled. Distinguish source transcription uncertainty from image-recognition uncertainty. Do not turn ambiguous devotional references into verified theological interpretations.`;
   const outputId = crypto.randomUUID();
   const startedAt = Date.now();
   const primary = call(settings, generationPolicy, request);

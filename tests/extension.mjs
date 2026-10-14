@@ -108,7 +108,7 @@ try {
   });
   await expect(watch.locator("#ytmind-launch")).toHaveAttribute(
     "data-ytmind-version",
-    "3.0.20",
+    "3.0.21",
     { timeout: 5000 },
   );
   assert.ok(

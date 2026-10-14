@@ -124,7 +124,7 @@ test("frame OCR cannot verify a claim about garbled caption transcripts", async 
   let callIndex = 0;
   const result = await generate(
     { sage: true },
-    "notes",
+    "chat",
     "",
     [
       {
@@ -236,4 +236,28 @@ test("first answer is published before delayed independent verification complete
   assert.equal(final.id, draft.id);
   assert.equal(final.processing, false);
   assert.equal(final.verification.status, "supported");
+});
+
+test("a title cannot become invented frame lyrics when OCR contains only a fragment", async () => {
+  const source = [
+    {
+      text: "Friday = i Ged",
+      title: "Tere Ik Chashm e Rehmat Se Tera Bimar Behtar Hai",
+      startTime: 100,
+      kind: "frame",
+      confidence: 60,
+    },
+  ];
+  const output = await generate(
+    { sage: true },
+    "notes",
+    "",
+    source,
+    async () => {
+      throw new Error("Insufficient source must not trigger a content summary");
+    },
+  );
+  assert.match(output.answer, /Not enough readable source/);
+  assert.ok(!output.answer.includes("glance of mercy"));
+  assert.equal(output.verification.status, "unchecked");
 });

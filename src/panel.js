@@ -445,7 +445,7 @@ function frameOCRText(frame) {
     accepted +
     uncertain +
     (["ready", "no-text"].includes(frame.status)
-      ? `<button class="text-button" data-retry-ocr="${esc(frame.id)}">Re-read frame</button>`
+      ? `<button class="text-button" data-retry-ocr="${esc(frame.id)}">Re-read frame</button><button class="text-button" data-retry-ocr="${esc(frame.id)}" data-ocr-language="eng+urd">Re-read in Urdu</button>`
       : "") +
     (frame.rawOcrText
       ? `<details><summary>Raw OCR · review original recognition</summary><pre dir="auto">${esc(frame.rawOcrText)}</pre></details>`
@@ -636,7 +636,11 @@ async function processFrames() {
         while (index < pending.length) {
           const frame = pending[index++];
           try {
-            const data = await recognize(frame.image, slot, language);
+            const data = await recognize(
+              frame.image,
+              slot,
+              frame.ocrLanguage || language,
+            );
             await api("OCR", { id: frame.id, ...data });
             if (
               /\b(?:const|let|function|def|class|import)\b|=>|#include|<\/?[A-Za-z]/.test(
@@ -760,7 +764,10 @@ document.addEventListener("click", async (e) => {
       return;
     }
     if (b.dataset.retryOcr) {
-      await api("OCR_RETRY", { id: b.dataset.retryOcr });
+      await api("OCR_RETRY", {
+        id: b.dataset.retryOcr,
+        language: b.dataset.ocrLanguage,
+      });
       await refresh(true);
       return;
     }

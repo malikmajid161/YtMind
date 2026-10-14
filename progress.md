@@ -202,3 +202,11 @@ Caption checkpoint regression results: 50/50 unit tests, build, browser UI integ
 - Active Short title/CC controls/player are preferred; real Shorts video without a legacy movie_player no longer waits an unnecessary minute. Removed unverified visible-transcript fallback that could reuse stale SPA source text.
 - 76 unit tests pass, including open-Short player captions/title regression. Native fixture test navigates between watch videos and two Shorts, asserting distinct session captions and continued capture. Test fixtures now supply matching player metadata rather than relying on unverified DOM captions.
 - Updated working dist to 3.0.20 directly; no ZIP. Missing-caption Shorts still require readable frames or permitted audio capture; this is not a claim that every Short has captions or a production corpus accuracy measurement.
+
+## 2026-10-14 — v3.0.21 Artwork grounding and Urdu retry
+
+- User report attributed the video title to frame text despite source containing only Friday = i Ged. Evidence blocks explicitly label video title as metadata, separately from EXTRACTED SOURCE TEXT; generation policy prohibits treating titles as observed words/lyrics.
+- Sparse frame-only evidence returns an honest insufficient-source response for notes/actions/speaking rather than sending a content-summary prompt. Regression confirms the reported fragment cannot become a lyric translation. Short code statements are preserved where recognizable; heuristic is not a general semantic source-sufficiency guarantee.
+- Added Re-read in Urdu, selecting local English+Urdu OCR per frame without changing global language preference. Existing accepted text is cleared while retry processes, preventing stale OCR from serving as new evidence.
+- Real local OCR experiment used the user's screenshot artwork crop: accepted 16 characters, 11 Urdu-script characters, 12 excluded lines. Decorative Nastaliq artwork remains largely unreadable; do not claim accurate complete transcription. Detailed raw result stays in ignored artifacts/user-artwork-ocr.json.
+- 77 unit tests pass. Working dist 3.0.21 rebuilt directly without ZIP. Existing incorrect notes must be regenerated and are not automatically rewritten.

@@ -319,7 +319,14 @@ export function createService({
         return mutate(async () => {
           const f = await store.read("frames", m.id);
           if (f)
-            await store.put("frames", { ...f, status: "pending", ocrText: "" });
+            await store.put("frames", {
+              ...f,
+              status: "pending",
+              ocrText: "",
+              ocrLanguage: ["eng", "urd", "eng+urd"].includes(m.language)
+                ? m.language
+                : f.ocrLanguage,
+            });
         });
       case "IMPORT":
       case "IMPORT_SEGMENTS":
