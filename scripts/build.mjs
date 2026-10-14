@@ -11,6 +11,7 @@ await build({
     "src/panel.js",
     "src/ocr.js",
     "src/offscreen.js",
+    "src/print.js",
   ],
   outdir: "dist",
   bundle: true,

@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-14T09:34:33.910Z",
+  "date": "2026-10-14T10:17:29.798Z",
   "scope": "Controlled synthetic English text images, not live YouTube or competitor evaluation",
   "browser": "155.0.8059.40",
   "hardware": {
@@ -19,8 +19,8 @@
       "font": 48,
       "kind": "prose",
       "actual": "React state remembers a value",
-      "confidence": 95,
-      "latencyMs": 536.1999999880791,
+      "confidence": 96,
+      "latencyMs": 479.7000000178814,
       "exactMatch": true,
       "characterErrorRate": 0
     },
@@ -31,7 +31,7 @@
       "kind": "prose",
       "actual": "Hooks must stay at the top level",
       "confidence": 96,
-      "latencyMs": 71.40000000596046,
+      "latencyMs": 66.39999997615814,
       "exactMatch": true,
       "characterErrorRate": 0
     },
@@ -41,8 +41,8 @@
       "font": 44,
       "kind": "command",
       "actual": "npm install react",
-      "confidence": 94,
-      "latencyMs": 47.5,
+      "confidence": 95,
+      "latencyMs": 62.400000005960464,
       "exactMatch": true,
       "characterErrorRate": 0
     },
@@ -52,8 +52,8 @@
       "font": 28,
       "kind": "command",
       "actual": "npm run build",
-      "confidence": 93,
-      "latencyMs": 40.69999998807907,
+      "confidence": 94,
+      "latencyMs": 50,
       "exactMatch": true,
       "characterErrorRate": 0
     },
@@ -64,7 +64,7 @@
       "kind": "code",
       "actual": "const count = 123;",
       "confidence": 95,
-      "latencyMs": 52.89999997615814,
+      "latencyMs": 53.20000001788139,
       "exactMatch": true,
       "characterErrorRate": 0
     },
@@ -75,7 +75,7 @@
       "kind": "code",
       "actual": "const [count, setCount] = useState(®);",
       "confidence": 81,
-      "latencyMs": 76.69999998807907,
+      "latencyMs": 77,
       "exactMatch": false,
       "characterErrorRate": 0.02631578947368421
     },
@@ -85,8 +85,8 @@
       "font": 20,
       "kind": "code",
       "actual": "export function App() { return null; }",
-      "confidence": 92,
-      "latencyMs": 75.40000000596046,
+      "confidence": 93,
+      "latencyMs": 72.19999998807907,
       "exactMatch": true,
       "characterErrorRate": 0
     },
@@ -98,8 +98,8 @@
       "color": "#777777",
       "background": "#bbbbbb",
       "actual": "Clean up subscriptions",
-      "confidence": 95,
-      "latencyMs": 48,
+      "confidence": 96,
+      "latencyMs": 46.5,
       "exactMatch": true,
       "characterErrorRate": 0
     }

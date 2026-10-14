@@ -196,9 +196,56 @@ export async function testStudio(browser, port = 4174) {
       "Explain the installation steps",
     );
     await page.locator("#pin").click();
+    await page.setViewportSize({ width: 320, height: 700 });
     await page.locator("#question").fill("npm install");
-    await page.locator("#ask-form .primary").click();
+    await page.waitForFunction(() => {
+      const rect = document
+        .querySelector("#send-question")
+        .getBoundingClientRect();
+      return (
+        rect.top >= 0 &&
+        rect.bottom <= innerHeight &&
+        rect.left >= 0 &&
+        rect.right <= innerWidth
+      );
+    });
+    await page.locator("#question").press("Control+Enter");
     await page.locator(".result").waitFor();
+    await page.locator("#question").fill("What prerequisites are mentioned?");
+    await page
+      .getByRole("button", { name: "Send question", exact: true })
+      .click();
+    await page.waitForFunction(
+      () => document.querySelectorAll("#workspace .question").length === 2,
+    );
+    await page.setViewportSize({ width: 1100, height: 900 });
+    await context.addInitScript(() => {
+      window.print = () => {
+        window.fixturePrintCalls = (window.fixturePrintCalls || 0) + 1;
+      };
+    });
+    const exportTab = context.waitForEvent("page");
+    await page.locator("[data-pdf]").first().click();
+    const pdfPage = await exportTab;
+    await pdfPage.waitForFunction(() => window.fixturePrintCalls > 0);
+    assert.match(
+      await pdfPage.locator("#document").textContent(),
+      /Source references/,
+    );
+    assert.equal(
+      await pdfPage.locator(".source a").first().getAttribute("href"),
+      "https://www.youtube.com/watch?v=abcdefghijk&t=0s",
+    );
+    await pdfPage.pdf({
+      path: "artifacts/print-view-export.pdf",
+      format: "A4",
+      printBackground: true,
+    });
+    await pdfPage.screenshot({
+      path: "artifacts/print-view-export.png",
+      fullPage: true,
+    });
+    await pdfPage.close();
     await page.locator('[data-tab="graph"]').click();
     await page.locator("#extract-graph").click();
     await page.locator(".graph-canvas").waitFor();

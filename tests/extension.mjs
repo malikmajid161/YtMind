@@ -178,6 +178,19 @@ try {
   await send("PIN", { videoId: id, pinned: true });
   state = await send("STATE");
   assert.equal(state.sessions.find((s) => s.id === id).pinned, true);
+  await worker.evaluate(() =>
+    chrome.runtime.sendMessage({ type: "FRAME_AVAILABLE" }).catch(() => {}),
+  );
+  await panel.locator("[data-pdf]").first().waitFor();
+  const printTab = context.waitForEvent("page");
+  await panel.locator("[data-pdf]").first().click();
+  const pdfExport = await printTab;
+  await pdfExport.locator("#document .source").first().waitFor();
+  assert.match(
+    await pdfExport.locator("#document").textContent(),
+    /Source references/,
+  );
+  await pdfExport.close();
   // Smoke-test the production OCR module and local assets on an extension origin.
   const ocr = await panel.evaluate(async () => {
     const canvas = document.createElement("canvas");

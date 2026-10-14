@@ -112,7 +112,11 @@ export function retrieve(all, query, mode = "chat", budget = 18000) {
   let selected;
   if (
     ["notes", "actions", "graph"].includes(mode) ||
-    /main idea|summari[sz]e|overview/i.test(query)
+    /main idea|summari[sz]e|overview/i.test(query) ||
+    (mode === "chat" &&
+      /^(?:What prerequisites are mentioned\??|Explain the code shown in the video)$/i.test(
+        query.trim(),
+      ))
   ) {
     // Sample across the whole video when it exceeds the request budget.
     const n = Math.min(all.length, Math.max(1, Math.floor(budget / 1000)));

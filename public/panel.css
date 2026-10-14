@@ -659,6 +659,32 @@ textarea {
   font-size: 12px;
   font-weight: 600;
 }
+#ask-form {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--white);
+}
+#ask-form label {
+  font-size: 12px;
+  font-weight: 600;
+}
+#send-question {
+  min-height: 48px;
+  font-size: 14px;
+}
+.ask-help {
+  color: var(--muted);
+  font-size: 11px;
+}
+.frame-ocr-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  line-height: 1.6;
+}
 .prompt-chips {
   display: flex;
   gap: 6px;

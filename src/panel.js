@@ -7,6 +7,7 @@ import { studioMode, localService, sourceId, fileFrame } from "./studio.js";
 import { parseTranscript } from "./source.js";
 import { transcribeAudio, recordTabAudio } from "./audio.js";
 import { zipSync, strToU8 } from "fflate";
+import { openPDFExport } from "./pdf-export.js";
 const $ = (s) => document.querySelector(s);
 const preview = !globalThis.chrome?.runtime?.id && !studioMode;
 const esc = (s) =>
@@ -280,7 +281,7 @@ function render() {
     html += `<div class="hint-card"><span>◇</span><div><b>A small habit, a lasting library.</b><br>Pin this video above to keep its sources and notes beyond your 24-hour session.</div></div>`;
     html += sourceTools();
   } else if (active === "chat") {
-    html += `<div class="prompt-chips"><button data-prompt="Explain the main idea">The main idea</button><button data-prompt="What prerequisites are mentioned?">Prerequisites</button><button data-prompt="Explain the code shown in the video">Explain the code</button></div><form id="ask-form"><label class="sr-only" for="question">Your question</label><textarea id="question" maxlength="2000" placeholder="What would you like to understand?" required></textarea><button class="primary" type="submit" ${!s || requestBusy ? "disabled" : ""}>Ask this video<span>↗</span></button></form>`;
+    html += `<div class="prompt-chips"><button data-prompt="Explain the main idea">The main idea</button><button data-prompt="What prerequisites are mentioned?">Prerequisites</button><button data-prompt="Explain the code shown in the video">Explain the code</button></div><form id="ask-form"><label for="question">Your question</label><textarea id="question" maxlength="2000" placeholder="What would you like to understand?" required></textarea><button id="send-question" class="primary" type="submit" ${!s || requestBusy ? "disabled" : ""}>${requestBusy ? "Processing…" : "Send question"}<span aria-hidden="true">↗</span></button><small class="ask-help">Ctrl+Enter to send · Enter for a new line</small></form>`;
     const outputs = s?.outputs?.filter((o) => o.mode === "chat") || [];
     html += outputs.length
       ? outputs
@@ -315,7 +316,7 @@ function render() {
           .reverse()
           .map(
             (f) =>
-              `<article class="frame"><img src="${esc(f.image)}" alt="Video frame at ${time(f.timestamp)}" loading="lazy"><div class="frame-body"><div class="frame-meta"><button class="citation" data-seek="${f.timestamp}" data-video="${f.videoId}">${time(f.timestamp)} ↗</button><span>${f.status === "ready" ? `OCR ${Math.round(f.confidence)}% confidence` : esc(f.status)}</span></div>${f.status === "ready" ? `<p>${esc(f.ocrText)}</p>` : f.status === "no-text" ? '<p class="muted">Snapshot saved; no readable text detected. It is not used as text evidence.</p>' : f.status === "failed" ? `<button class="text-button" data-retry-ocr="${esc(f.id)}">Retry OCR</button>` : '<p class="muted">Waiting for local OCR…</p>'}</div></article>`,
+              `<article class="frame"><img src="${esc(f.image)}" alt="Video frame at ${time(f.timestamp)}" loading="lazy"><div class="frame-body"><div class="frame-meta"><button class="citation" data-seek="${f.timestamp}" data-video="${f.videoId}">${time(f.timestamp)} ↗</button><span>${f.status === "ready" ? `OCR ${Math.round(f.confidence)}% confidence` : esc(f.status)}</span></div>${frameOCRText(f)}</div></article>`,
           )
           .join("")
       : empty(
@@ -390,6 +391,8 @@ function render() {
     const updatedForm = next.querySelector("#ask-form");
     oldAskForm.querySelector("button[type=submit]").disabled =
       updatedForm.querySelector("button[type=submit]").disabled;
+    oldAskForm.querySelector("button[type=submit]").innerHTML =
+      updatedForm.querySelector("button[type=submit]").innerHTML;
     for (const child of [...view.childNodes])
       if (child !== oldAskForm) child.remove();
     let afterForm = false;
@@ -409,6 +412,29 @@ function render() {
   renderedVideoId = videoId;
   renderedTab = active;
   if (active === "graph") drawGraph();
+}
+function frameOCRText(frame) {
+  const accepted =
+    frame.status === "ready"
+      ? `<p class="frame-ocr-text" dir="auto">${esc(frame.ocrText)}</p>`
+      : frame.status === "no-text"
+        ? '<p class="muted">No reliable text was accepted. The snapshot is saved.</p>'
+        : frame.status === "failed"
+          ? `<button class="text-button" data-retry-ocr="${esc(frame.id)}">Retry OCR</button>`
+          : '<p class="muted">Waiting for local OCR…</p>';
+  const uncertain = frame.uncertainLines?.length
+    ? `<p class="muted">${frame.uncertainLines.length} low-confidence line(s) excluded from automatic text evidence.</p>`
+    : "";
+  return (
+    accepted +
+    uncertain +
+    (["ready", "no-text"].includes(frame.status)
+      ? `<button class="text-button" data-retry-ocr="${esc(frame.id)}">Re-read frame</button>`
+      : "") +
+    (frame.rawOcrText
+      ? `<details><summary>Raw OCR · review original recognition</summary><pre dir="auto">${esc(frame.rawOcrText)}</pre></details>`
+      : "")
+  );
 }
 function sourceTools() {
   return `<details><summary>Missing captions? Add your own source</summary><p class="muted">${studioMode ? "Import source text or transcribe audio." : "Open YouTube’s transcript panel and retry, or import your source."} Timestamped text, SRT, VTT and JSON preserve video citations. Plain text starts at 0:00.</p>${studioMode ? "" : '<button class="secondary" id="retry-captions">Retry captions</button>'}<div class="source-controls"><label class="secondary file-control">Import subtitles<input id="subtitle-file" type="file" accept=".txt,.srt,.vtt,.json" /></label><label class="secondary file-control">Upload audio<input id="audio-file" type="file" accept=".wav,.mp3,.mp4,.m4a,.mpeg,.mpga,.ogg,.flac,.webm" /></label><button class="secondary" id="record-tab-audio">Record tab audio</button></div><form id="import-form"><label class="sr-only" for="manual-source">Transcript text</label><textarea id="manual-source" maxlength="150000" placeholder="Paste the video transcript…" required></textarea><button class="text-button">Use this transcript</button></form></details>`;
@@ -733,11 +759,14 @@ document.addEventListener("click", async (e) => {
       return;
     }
     if (b.dataset.pdf) {
-      const output = b.closest(".result");
-      document
-        .querySelectorAll(".result")
-        .forEach((r) => r.classList.toggle("print-selected", r === output));
-      window.print();
+      const output = findOutput(b.dataset.pdf);
+      await openPDFExport(
+        [output],
+        output.evidence?.[0]?.title || session()?.title || "YTMind notes",
+      );
+      notice(
+        "PDF export opened. Choose Save as PDF, then Save in the print dialog.",
+      );
       return;
     }
     switch (b.id) {
@@ -908,11 +937,25 @@ document.addEventListener("input", (e) => {
   if (e.target.id === "graph-search") drawGraph(e.target.value);
 });
 document.addEventListener("keydown", (e) => {
+  if (
+    e.target.id === "question" &&
+    (e.ctrlKey || e.metaKey) &&
+    e.key === "Enter" &&
+    !e.isComposing
+  ) {
+    e.preventDefault();
+    if (!$("#send-question").disabled) $("#ask-form").requestSubmit();
+    return;
+  }
   const n = e.target.closest("[data-node]");
   if (n && ["Enter", " "].includes(e.key)) {
     e.preventDefault();
     showNode(n.dataset.node);
   }
+});
+document.addEventListener("focusin", (e) => {
+  if (e.target.id === "question")
+    $("#ask-form").scrollIntoView({ block: "center", behavior: "smooth" });
 });
 if (studioMode) {
   document.body.classList.add("studio");
@@ -1300,10 +1343,14 @@ document.addEventListener("click", async (e) => {
       download(zipSync(files), "ytmind-lecture-notes.zip", "application/zip");
     }
     if (button.id === "batch-pdf") {
-      document
-        .querySelectorAll(".result")
-        .forEach((r) => r.classList.add("print-selected"));
-      window.print();
+      const outputs = (state.batch?.entries || []).flatMap((entry) => {
+        const parts = (
+          state.sessions.find((s) => s.id === entry.videoId)?.outputs || []
+        ).filter((o) => o.jobId === entry.jobId);
+        return parts.length ? [combineParts(parts)] : [];
+      });
+      await openPDFExport(outputs, "YTMind lecture notes");
+      notice("Lecture PDF export opened. Choose Save as PDF, then Save.");
     }
     if (button.id === "extract-code") {
       if (requestBusy) return;

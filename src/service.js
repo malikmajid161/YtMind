@@ -268,6 +268,16 @@ export function createService({
           const f = await store.read("frames", m.id);
           if (!f) return;
           const text = String(m.text || "").slice(0, 20000);
+          const quality = {
+            rawOcrText: String(m.rawText || m.text || "").slice(0, 20000),
+            overallConfidence: Number(m.overallConfidence ?? m.confidence) || 0,
+            uncertainLines: (m.uncertainLines || [])
+              .slice(0, 200)
+              .map((line) => ({
+                text: String(line.text || "").slice(0, 2000),
+                confidence: Number(line.confidence) || 0,
+              })),
+          };
           const previous = (await store.frames(f.videoId)).filter(
             (x) => x.status === "ready",
           );
@@ -275,6 +285,7 @@ export function createService({
             await store.put("frames", {
               ...f,
               status: "no-text",
+              ...quality,
               ocrText: "",
               confidence: Number(m.confidence) || 0,
             });
@@ -289,6 +300,7 @@ export function createService({
           await store.put("frames", {
             ...f,
             ocrText: text,
+            ...quality,
             status: "ready",
             confidence: Number(m.confidence) || 0,
           });
@@ -306,7 +318,8 @@ export function createService({
       case "OCR_RETRY":
         return mutate(async () => {
           const f = await store.read("frames", m.id);
-          if (f) await store.put("frames", { ...f, status: "pending" });
+          if (f)
+            await store.put("frames", { ...f, status: "pending", ocrText: "" });
         });
       case "IMPORT":
       case "IMPORT_SEGMENTS":

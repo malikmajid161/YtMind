@@ -1,5 +1,6 @@
 import { createWorker } from "tesseract.js";
 import { simd } from "wasm-feature-detect";
+import { assessOCR } from "./ocr-quality.js";
 const coreFile = simd().then((supported) =>
   supported ? "ocr/tesseract-core-simd-lstm.js" : "ocr/tesseract-core-lstm.js",
 );
@@ -33,6 +34,10 @@ export async function recognize(image, slot = 0, language = "eng") {
     workers[slot] = entry;
   }
   const worker = await workers[slot].promise;
-  const { data } = await worker.recognize(image);
-  return { text: data.text, confidence: data.confidence };
+  const { data } = await worker.recognize(
+    image,
+    {},
+    { text: true, blocks: true },
+  );
+  return assessOCR(data);
 }

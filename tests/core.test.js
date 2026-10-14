@@ -179,3 +179,31 @@ test("provider line-style citations retain only source IDs we actually supplied"
     "Claim[E1][E2]",
   );
 });
+
+test("built-in prerequisite and code questions inspect source context without requiring those exact words", () => {
+  for (const query of [
+    "What prerequisites are mentioned?",
+    "Explain the code shown in the video",
+  ]) {
+    const result = retrieve(
+      [
+        {
+          ...evidence[0],
+          text: "Install Node.js 18 before running npm install.",
+        },
+      ],
+      query,
+      "chat",
+    );
+    assert.equal(result.length, 1);
+    assert.match(result[0].text, /Node/);
+  }
+  assert.equal(
+    retrieve(
+      [{ ...evidence[0], text: "Install Node.js" }],
+      "penguin migration",
+      "chat",
+    ).length,
+    0,
+  );
+});
