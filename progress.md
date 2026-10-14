@@ -146,3 +146,7 @@ Caption checkpoint regression results: 50/50 unit tests, build, browser UI integ
 
 - Replaced platform-dependent pink brain emoji with an inline vector brain mark in the launcher's dark green brand color. Consistent 24px sizing, text alignment, and accessible Open YTMind label. Drawer interaction remains unchanged.
 - Built installable 3.0.10 release.
+
+## 2026-10-14 — v3.0.11 Padded brain icons
+
+- Replaced cropped 16/48/128px icons with the complete pink brain silhouette on transparent padding. Generated the padded master using imagegen and resized to manifest icon dimensions. Also updated the user's extracted 3.0.9 icons directory. Built 3.0.11 ZIP; no runtime logic change.
