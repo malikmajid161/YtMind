@@ -133,13 +133,11 @@ export async function testStudio(browser, port = 4174) {
       return c.toDataURL().split(",")[1];
     });
     await page.locator("#frame-time").fill("12");
-    await page
-      .locator("#frame-files")
-      .setInputFiles({
-        name: "slide.png",
-        mimeType: "image/png",
-        buffer: Buffer.from(image, "base64"),
-      });
+    await page.locator("#frame-files").setInputFiles({
+      name: "slide.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(image, "base64"),
+    });
     await page.waitForFunction(
       () =>
         document

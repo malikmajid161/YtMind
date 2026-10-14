@@ -1,16 +1,36 @@
 {
-  "date": "2026-10-13T20:12:31.923Z",
+  "date": "2026-10-14T02:46:46.170Z",
   "scope": "Single public technical-video ingestion smoke probe; not a corpus benchmark",
   "url": "https://www.youtube.com/watch?v=Tn6-PIqc4UM",
   "videoId": "Tn6-PIqc4UM",
   "captionSegments": 0,
   "capturedFrames": 1,
-  "title": "YouTube",
+  "title": "React in 100 Seconds",
+  "captionMethods": [
+    "[TranscriptFetcher] Caption methods unavailable: [\"visible transcript: empty\",\"player captions: empty\",\"get_transcript: HTTP 400\",\"caption url: blocked by YouTube (empty response)\",\"YouTube transcript panel: panel opened but no text found\"]"
+  ],
+  "dom": {
+    "title": "React in 100 Seconds - YouTube",
+    "heading": "React in 100 Seconds",
+    "transcriptSegments": 0,
+    "transcriptButtons": [
+      "Show transcript",
+      "Transcript",
+      "Show transcript",
+      "Close transcript"
+    ],
+    "ccAvailable": true,
+    "transcriptPanel": "",
+    "transcriptTags": [
+      "segmented-like-dislike-button-view-model",
+      "ytd-video-description-transcript-section-renderer"
+    ]
+  },
   "captionStatus": "unavailable",
   "player": {
     "paused": false,
     "readyState": 4,
-    "time": 20.916137,
+    "time": 20.721943,
     "adShowing": false
   },
   "status": "caption-source-unavailable-or-pending"

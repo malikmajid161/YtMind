@@ -99,13 +99,11 @@ export async function testLiveStudio(browser, port = 4174) {
       return c.toDataURL().split(",")[1];
     });
     await page.locator("#frame-time").fill("12");
-    await page
-      .locator("#frame-files")
-      .setInputFiles({
-        name: "controlled-frame.png",
-        mimeType: "image/png",
-        buffer: Buffer.from(image, "base64"),
-      });
+    await page.locator("#frame-files").setInputFiles({
+      name: "controlled-frame.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(image, "base64"),
+    });
     await page.waitForFunction(
       () =>
         document

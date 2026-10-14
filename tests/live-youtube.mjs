@@ -22,9 +22,14 @@ export async function probeYouTube(context, panel, send) {
     capturedFrames: 0,
   };
   let page;
+  const captionMethods = [];
   try {
     await context.unroute("https://www.youtube.com/**");
     page = await context.newPage();
+    page.on("console", (message) => {
+      if (message.text().includes("[TranscriptFetcher]"))
+        captionMethods.push(message.text().slice(0, 1500));
+    });
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
     if (page.url().includes("consent.")) {
       const reject = page.getByRole("button", { name: /Reject all/i });
@@ -65,6 +70,44 @@ export async function probeYouTube(context, panel, send) {
       await new Promise((r) => setTimeout(r, 1000));
     }
     report.title = found?.title;
+    report.captionMethods = captionMethods;
+    report.dom = await page.evaluate(() => ({
+      title: document.title,
+      heading: document
+        .querySelector("h1.ytd-watch-metadata")
+        ?.textContent?.trim(),
+      transcriptSegments: document.querySelectorAll(
+        "ytd-transcript-segment-renderer, transcript-segment-view-model",
+      ).length,
+      transcriptButtons: [...document.querySelectorAll("button")]
+        .filter((b) =>
+          /transcript/i.test(
+            b.getAttribute("aria-label") || b.textContent || "",
+          ),
+        )
+        .map((b) =>
+          (b.getAttribute("aria-label") || b.textContent || "")
+            .trim()
+            .slice(0, 100),
+        ),
+      ccAvailable: !!document.querySelector(
+        '.ytp-subtitles-button:not([style*="display: none"])',
+      ),
+      transcriptPanel: document
+        .querySelector(
+          'ytd-engagement-panel-section-list-renderer[target-id*="transcript"]',
+        )
+        ?.textContent?.replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 1200),
+      transcriptTags: [
+        ...new Set(
+          [...document.querySelectorAll("*")]
+            .map((e) => e.localName)
+            .filter((n) => /transcript|segment/.test(n)),
+        ),
+      ],
+    }));
     report.captionStatus = found?.captionStatus || "pending";
     report.captionSegments = found?.transcript.length || 0;
     report.player = await page.evaluate(() => {

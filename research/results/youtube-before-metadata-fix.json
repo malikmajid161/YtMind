@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-13T20:12:31.923Z",
+  "scope": "Single public technical-video ingestion smoke probe; not a corpus benchmark",
+  "url": "https://www.youtube.com/watch?v=Tn6-PIqc4UM",
+  "videoId": "Tn6-PIqc4UM",
+  "captionSegments": 0,
+  "capturedFrames": 1,
+  "title": "YouTube",
+  "captionStatus": "unavailable",
+  "player": {
+    "paused": false,
+    "readyState": 4,
+    "time": 20.916137,
+    "adShowing": false
+  },
+  "status": "caption-source-unavailable-or-pending"
+}

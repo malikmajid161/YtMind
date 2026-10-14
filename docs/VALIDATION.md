@@ -4,7 +4,7 @@ Updated 14 October 2026. Executed results are distinguished from unmeasured clai
 
 | Check                   | Result                                                     | Evidence scope                                                                                                               |
 | ----------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Core tests              | 31 passed                                                  | Retention, source/version identity, chunking, citation variants, key boundary, stale writes, provider failures, quote checks |
+| Core tests              | 35 passed                                                  | Retention, source/version identity, chunking, citation variants, key boundary, stale writes, provider failures, quote checks |
 | Unpacked build          | Passed                                                     | Reproducible source, manifest and local OCR assets                                                                           |
 | Browser UI              | Passed                                                     | Seven tabs, graph search, proof view, settings and 320px layout; no page errors                                              |
 | Local OCR               | 7/8 exact; two-worker smoke passed; zero external requests | Synthetic English canvas images under comparable CSP                                                                         |

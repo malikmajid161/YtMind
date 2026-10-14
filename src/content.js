@@ -30,6 +30,8 @@ async function captions(videoId, token) {
     videoId,
   );
   if (current !== videoId || epoch !== token) return;
+  if (result.title && result.title !== "YouTube")
+    await send({ type: "SESSION", videoId, title: result.title });
   await send({
     type: "TRANSCRIPT",
     videoId,

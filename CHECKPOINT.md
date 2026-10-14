@@ -1,6 +1,6 @@
 # YTMind resume checkpoint
 
-Saved 14 October 2026 (Asia/Karachi). Paused at the user's request due usage limits. Resume from this checkpoint, not from scratch.
+Saved 14 October 2026 (Asia/Karachi). Resumed after the requested usage-limit checkpoint. Continue from the current code, not from scratch.
 
 ## Code and location
 
@@ -21,11 +21,11 @@ npm run check
 npm start
 ```
 
-Open http://127.0.0.1:4173/panel.html?studio. The built extension is in dist; load it through chrome://extensions. No application server is currently running.
+Open http://127.0.0.1:4173/panel.html?studio. The built extension is in dist; load it through chrome://extensions. Run npm start to launch the local application server.
 
 ## Verification at pause
 
-- 33 core tests passed and build passed.
+- 35 core tests passed and build passed.
 - Packaged native MV3 smoke passed with controlled YouTube fixture, service worker, IndexedDB, generation/verification mocks and local OCR.
 - Browser UI and local workspace integration passed, including persistence, seven tabs and print/PDF layout.
 - Real Groq browser workspace completed eight workflows with 15 POST requests, all HTTP 200. Raw observations: research/results/live-studio.json. This is integration evidence on one authored source, not an accuracy benchmark.
@@ -34,7 +34,7 @@ Open http://127.0.0.1:4173/panel.html?studio. The built extension is in dist; lo
 
 ## Unresolved live-source issue
 
-Latest live YouTube probe captured one frame but zero caption segments. Caption status unavailable; title remained YouTube rather than the video title. See research/results/youtube-live.json and retained earlier probes. Automatic captions are NOT established as reliable. Manual transcripts work.
+Latest live YouTube probe captured one frame but zero caption segments. Caption status unavailable; title refresh is now fixed and verified as React in 100 Seconds. See research/results/youtube-live.json and retained earlier probes. Automatic captions are NOT established as reliable. Manual transcripts work.
 
 ## Research state
 
@@ -47,7 +47,7 @@ Credentials exist only in ignored .env.local; never print or commit them. Previo
 ## Resume priorities
 
 1. Inspect GitHub CI for this checkpoint; earlier run 38456924278 failed on CSP before the local fix.
-2. Fix actual YouTube caption readiness/fallback and title refresh; rerun a live probe while retaining previous observations.
+2. Fix actual YouTube caption readiness/fallback; title refresh is fixed; rerun a live probe while retaining previous observations.
 3. Review service/capture lifecycle and cross-tab races, then run meaningful regression checks for fixes.
 4. Refresh remaining documentation, review final diff and package installable ZIP/release.
 5. Expand real tutorial evaluation with human annotation and competitor comparisons; revise the paper from measured results.
@@ -64,4 +64,8 @@ npm run research:retrieval
 npm run research:report
 ```
 
-Optional live tests skip when their result files already exist. Preserve old observations before deliberately rerunning; do not treat skipped live tests as fresh success. Remote CI status after checkpoint push is pending inspection.
+Optional live tests skip when their result files already exist. Preserve old observations before deliberately rerunning; do not treat skipped live tests as fresh success. Checkpoint CI run 38502652001 passed all checks, including packaged extension, UI and OCR. Subsequent changes require their own CI check.
+
+## Resume update
+
+Checkpoint commit 07a4034 was pushed and CI run 38502652001 passed. Subsequent live probes verified the corrected video title but still found zero caption segments and one captured frame. YouTube returned empty caption responses and HTTP 400 for get_transcript; the rendered transcript panel was empty. New regressions cover signed caption URL preservation and restoring temporary CC state on cancelled navigation. All 35 core tests pass. Prior observations remain saved separately.

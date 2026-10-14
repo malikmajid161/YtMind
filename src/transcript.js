@@ -131,7 +131,10 @@ export class TranscriptFetcher {
       }
     }
 
-    console.info("[TranscriptFetcher] Caption methods unavailable:", errors);
+    console.info(
+      "[TranscriptFetcher] Caption methods unavailable: " +
+        JSON.stringify(errors),
+    );
 
     // Tell the two cases apart: no captions at all vs. something else
     const hasCaptionTracks =
@@ -206,25 +209,13 @@ export class TranscriptFetcher {
       tracks[0];
 
     const text = await (
-      await fetch(track.baseUrl + "&fmt=json3", {
+      await fetch(track.baseUrl, {
         credentials: "include",
         signal: this._signal(),
       })
     ).text();
     if (!text) throw new Error("blocked by YouTube (empty response)");
-    const data = JSON.parse(text);
-
-    return (data.events || [])
-      .filter((e) => e.segs)
-      .map((e) => ({
-        text: e.segs
-          .map((s) => s.utf8)
-          .join("")
-          .replace(/\s+/g, " ")
-          .trim(),
-        startTime: (e.tStartMs || 0) / 1000,
-      }))
-      .filter((e) => e.text);
+    return this._decodeCaptions(text);
   }
 
   // ── Method A: let YouTube's own player load the captions ──
@@ -262,12 +253,19 @@ export class TranscriptFetcher {
         ccBtn.click();
         toggled = true;
       }
-      for (let i = 0; i < 25 && !url; i++) {
-        await this._sleep(200);
-        url = findUrl();
+      try {
+        for (let i = 0; i < 25 && !url; i++) {
+          await this._sleep(200);
+          url = findUrl();
+        }
+      } finally {
+        if (
+          toggled &&
+          ccBtn.isConnected &&
+          ccBtn.getAttribute("aria-pressed") === "true"
+        )
+          ccBtn.click();
       }
-      if (toggled && ccBtn.getAttribute("aria-pressed") === "true")
-        ccBtn.click();
     }
     if (!url) throw new Error("player did not load captions");
 
@@ -302,10 +300,10 @@ export class TranscriptFetcher {
           const m = raw.match(
             /^((?:\d+:)?\d{1,2}:\d{2})\s*(?:\d+\s+(?:seconds?|minutes?|hours?),?\s*)*\s*(.*)$/,
           );
-          if (!m) return { text: raw, startTime: 0 };
+          if (!m) return null;
           return { text: m[2].trim(), startTime: toSeconds(m[1]) };
         })
-        .filter((s) => s.text);
+        .filter((s) => s?.text);
     };
 
     let segments = readSegments();
