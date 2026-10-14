@@ -108,7 +108,7 @@ try {
   });
   await expect(watch.locator("#ytmind-launch")).toHaveAttribute(
     "data-ytmind-version",
-    "3.0.21",
+    "3.0.22",
     { timeout: 5000 },
   );
   assert.ok(
@@ -270,6 +270,89 @@ try {
     chrome.storage.local.get("settings"),
   );
   assert.equal(keyResult.settings.apiKey, "test-key-only");
+  // Captionless native workspace obtains full audio via the local helper bridge.
+  const helperJob = "11111111-1111-4111-8111-111111111111";
+  await context.route("http://127.0.0.1:4175/**", (route) => {
+    const url = new URL(route.request().url());
+    const headers = {
+      "access-control-allow-origin": `chrome-extension://${extensionId}`,
+      "access-control-allow-headers": "content-type",
+      "access-control-allow-methods": "GET, POST, OPTIONS",
+    };
+    if (route.request().method() === "OPTIONS")
+      return route.fulfill({ status: 204, headers });
+    if (url.pathname.endsWith("/audio/0"))
+      return route.fulfill({
+        headers,
+        contentType: "audio/mpeg",
+        body: Buffer.from("controlled audio bytes"),
+      });
+    const value = url.pathname.endsWith("/health")
+      ? { ready: true, paired: true }
+      : route.request().method() === "POST"
+        ? { id: helperJob, status: "processing" }
+        : {
+            status: "ready",
+            metadata: {
+              title: "Controlled React Tutorial",
+              duration: 12,
+              audioPrimary: false,
+            },
+            chunks: [
+              {
+                start: 0,
+                end: 12,
+                audioUrl: `/api/media/${helperJob}/audio/0`,
+              },
+            ],
+          };
+    return route.fulfill({
+      headers,
+      contentType: "application/json",
+      body: JSON.stringify(value),
+    });
+  });
+  await context.route(
+    "https://api.groq.com/openai/v1/audio/transcriptions",
+    (route) =>
+      route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({
+          segments: [
+            { text: "Install Node.js. Run npm install.", start: 0, end: 10 },
+          ],
+        }),
+      }),
+  );
+  await send("CLEAR");
+  await send("SESSION", { videoId: id, title: "Controlled React Tutorial" });
+  await watch.bringToFront();
+  await embedded.locator("#settings-dialog").evaluate((dialog) => {
+    if (dialog.open) dialog.close();
+  });
+  await embedded.locator('[data-tab="notes"]').click();
+  await embedded.locator('[data-generate="notes"]').click();
+  await expect
+    .poll(
+      async () =>
+        (await send("STATE")).sessions.find((s) => s.id === id)?.ingestCoverage
+          ?.status,
+      { timeout: 20000 },
+    )
+    .toBe("complete");
+  await expect
+    .poll(
+      async () =>
+        (await send("STATE")).sessions
+          .find((s) => s.id === id)
+          ?.outputs?.some((o) => o.mode === "notes" && !o.processing),
+      { timeout: 20000 },
+    )
+    .toBe(true);
+  assert.equal(
+    (await send("STATE")).sessions.find((s) => s.id === id).captionSource,
+    "audio transcription",
+  );
   await send("CLEAR");
   state = await send("STATE");
   assert.equal(state.sessions.length, 0);

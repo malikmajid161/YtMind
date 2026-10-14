@@ -210,3 +210,12 @@ Caption checkpoint regression results: 50/50 unit tests, build, browser UI integ
 - Added Re-read in Urdu, selecting local English+Urdu OCR per frame without changing global language preference. Existing accepted text is cleared while retry processes, preventing stale OCR from serving as new evidence.
 - Real local OCR experiment used the user's screenshot artwork crop: accepted 16 characters, 11 Urdu-script characters, 12 excluded lines. Decorative Nastaliq artwork remains largely unreadable; do not claim accurate complete transcription. Detailed raw result stays in ignored artifacts/user-artwork-ocr.json.
 - 77 unit tests pass. Working dist 3.0.21 rebuilt directly without ZIP. Existing incorrect notes must be regenerated and are not automatically rewritten.
+
+## 2026-10-14 — v3.0.22 Native full-audio fallback
+
+- Connected the native extension to a paired loopback audio helper on 127.0.0.1:4175. Generate on sparse captionless source tries the helper before content generation. It fetches public video audio locally, posts audio directly to Groq ASR, persists timestamped source sections and coverage, then generates the requested output. Does not use the video title or artwork as a substitute for spoken content.
+- Helper accepts only same-local-origin requests or the configured extension origin. CORS preflight and health pairing are explicit; tests reject foreign web origins and other extension IDs. Groq keys stay in the extension, never sent to the local helper. Added only loopback-port host/CSP access.
+- Started a hidden project helper process for the user's observed unpacked extension ID. Pairing file is ignored. Reboot/process termination requires npm run start:helper; no Windows startup settings were changed.
+- Real Uinx1py7Jsg run processed 396 seconds, obtained 38 ASR segments / 893 transcript characters and 1576 English note characters. All six provider calls HTTP200; 77.547 seconds end to end, SAGE uncertain. No human transcription reference or accuracy score. Result metadata tracked in research/results/native-helper-live.json; source audio/transcript/answer remain in ignored artifacts. First English-rewrite failure was corrected with Arabic-aware bounded second-pass rewrite.
+- Native UI-to-helper/ASR/notes pipeline passes in a controlled browser test with mocked media and provider responses; real helper/provider smoke is a separate HTTP-based run, not a claim of manual production Chrome acceptance.
+- 79 unit tests pass. Native extension integration passes. Working dist updated to 3.0.22 without ZIP.

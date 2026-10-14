@@ -1,0 +1,38 @@
+{
+  "videoId": "Uinx1py7Jsg",
+  "scope": "Real user-selected public video, paired localhost helper through HTTP plus live Groq ASR and notes; Chrome UI-to-helper routing tested separately with mocked provider responses. No human accuracy reference.",
+  "requests": [
+    {
+      "status": 200,
+      "path": "/openai/v1/audio/transcriptions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    },
+    {
+      "status": 200,
+      "path": "/openai/v1/chat/completions"
+    }
+  ],
+  "duration": 396,
+  "segments": 38,
+  "transcriptCharacters": 893,
+  "answerCharacters": 1576,
+  "verification": "uncertain",
+  "status": "completed",
+  "elapsedMs": 77547,
+  "date": "2026-10-14"
+}

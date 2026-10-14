@@ -34,3 +34,20 @@ test("failed English rewrite cannot silently save Hindi prose", async () => {
     /untranslated text/,
   );
 });
+
+test("English rewrite retries Arabic leftovers using the comparison model", async () => {
+  let count = 0;
+  const result = await ensureEnglish(
+    { verifierModel: "comparison-model" },
+    "کتاب",
+    async (_, system, user, options) => {
+      count++;
+      if (count === 1) return "The word is کتاب.";
+      assert.equal(options.model, "comparison-model");
+      assert.match(system, /Arabic/);
+      return "The word means book.";
+    },
+  );
+  assert.equal(result, "The word means book.");
+  assert.equal(count, 2);
+});

@@ -34,3 +34,29 @@ test("local media endpoint rejects foreign origins, arbitrary targets and oversi
     await new Promise((resolve) => server.close(resolve));
   }
 });
+
+test("paired extension alone receives local helper CORS access", async () => {
+  const original = process.env.YTMIND_EXTENSION_ID;
+  process.env.YTMIND_EXTENSION_ID = "a".repeat(32);
+  const server = await previewServer(0);
+  const url = `http://127.0.0.1:${server.address().port}/api/media/health`;
+  try {
+    const accepted = await fetch(url, {
+      headers: { origin: `chrome-extension://${"a".repeat(32)}` },
+    });
+    assert.equal(accepted.status, 200);
+    assert.equal((await accepted.json()).paired, true);
+    assert.equal(
+      accepted.headers.get("access-control-allow-origin"),
+      `chrome-extension://${"a".repeat(32)}`,
+    );
+    const rejected = await fetch(url, {
+      headers: { origin: `chrome-extension://${"b".repeat(32)}` },
+    });
+    assert.equal(rejected.status, 403);
+  } finally {
+    if (original === undefined) delete process.env.YTMIND_EXTENSION_ID;
+    else process.env.YTMIND_EXTENSION_ID = original;
+    await new Promise((resolve) => server.close(resolve));
+  }
+});

@@ -565,8 +565,41 @@ function showNode(id) {
   $("#node-detail").innerHTML =
     `<div class="concept"><h3>${esc(n.label)}</h3><span class="tag">${esc(n.type)}</span>${relations.map((e) => `<p class="muted">${esc(e.source)} → ${esc(e.relation)} → ${esc(e.target)}</p>`).join("")}${n.sources.map((s) => `<button class="source-link" data-seek="${s.startTime}" data-video="${s.videoId}">${esc(s.title)}<span class="stamp">${time(s.startTime)} ↗</span></button>`).join("")}</div>`;
 }
-async function run(mode, query = "", resumeJob = null) {
+async function run(mode, query = "", resumeJob = null, sourceReady = false) {
   if (requestBusy) return;
+  if (!studioMode && !preview && !sourceReady) await refresh(true);
+  if (!session()) {
+    notice("Open a YouTube video before generating an answer.", true);
+    return;
+  }
+  if (
+    !studioMode &&
+    !preview &&
+    !sourceReady &&
+    !resumeJob &&
+    session() &&
+    !session().transcript?.length &&
+    !frames.some((f) => (f.ocrText || "").length >= 80)
+  ) {
+    let helperReady = false;
+    try {
+      const health = await fetch("http://127.0.0.1:4175/api/media/health", {
+        signal: AbortSignal.timeout(2500),
+      });
+      helperReady = health.ok && (await health.json()).paired;
+    } catch {
+      /* Frame-only workflow remains available without helper. */
+    }
+    if (helperReady) {
+      await ingestLink(
+        videoId,
+        state.settings.audioLanguage || "",
+        mode,
+        query,
+      );
+      return;
+    }
+  }
   requestBusy = true;
   pauseRequested = false;
   const originVideo = videoId;
@@ -1258,7 +1291,7 @@ $("#source-dialog").addEventListener("cancel", (e) => {
 window.addEventListener("pagehide", () => closeSourceDraft());
 
 let linkIngest = null;
-async function ingestLink(id, language) {
+async function ingestLink(id, language, nextMode = "notes", nextQuery = "") {
   if (requestBusy || linkIngest)
     throw new Error(
       "Finish or cancel the current job before importing another link.",
@@ -1277,7 +1310,9 @@ async function ingestLink(id, language) {
     notice(
       "Fetching the video's audio… This happens locally; private or unavailable sources may fail.",
     );
-    const response = await fetch("/api/media", {
+    const helperUrl = (path) =>
+      studioMode ? path : `http://127.0.0.1:4175${path}`;
+    const response = await fetch(helperUrl("/api/media"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ videoId: id }),
@@ -1290,7 +1325,7 @@ async function ingestLink(id, language) {
     do {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       if (controller.signal.aborted) throw new Error("Link import cancelled.");
-      const check = await fetch(`/api/media/${created.id}`, {
+      const check = await fetch(helperUrl(`/api/media/${created.id}`), {
         signal: controller.signal,
       });
       job = await check.json();
@@ -1307,7 +1342,9 @@ async function ingestLink(id, language) {
       notice(
         `Transcribing section ${index + 1}/${job.chunks.length} with Groq…`,
       );
-      const audio = await fetch(chunk.audioUrl, { signal: controller.signal });
+      const audio = await fetch(helperUrl(chunk.audioUrl), {
+        signal: controller.signal,
+      });
       if (!audio.ok)
         throw new Error("Audio section is unavailable. Retry the link import.");
       const file = new File([await audio.blob()], "source.mp3", {
@@ -1348,7 +1385,7 @@ async function ingestLink(id, language) {
     linkIngest = null;
     await refresh(true);
   }
-  if (videoId === id) await run("notes");
+  if (videoId === id) await run(nextMode, nextQuery, null, true);
 }
 window.addEventListener("pagehide", () => linkIngest?.abort());
 

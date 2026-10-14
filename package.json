@@ -1,6 +1,6 @@
 {
   "name": "ytmind",
-  "version": "3.0.21",
+  "version": "3.0.22",
   "private": true,
   "type": "module",
   "scripts": {
@@ -25,7 +25,8 @@
     "test:ocr:urdu": "node tests/ocr-urdu.mjs",
     "test:batch:live": "node tests/live-batch.mjs",
     "test:code:live": "node tests/live-code.mjs",
-    "test:link:live": "node tests/live-link.mjs"
+    "test:link:live": "node tests/live-link.mjs",
+    "start:helper": "node scripts/native-helper.mjs"
   },
   "dependencies": {
     "@tesseract.js-data/eng": "^1.0.0",

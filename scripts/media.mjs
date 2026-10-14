@@ -20,13 +20,34 @@ export async function mediaRequest(req, res, url) {
     res.end(JSON.stringify(data));
   };
   const origin = req.headers.origin;
+  const pairedOrigin = /^[a-p]{32}$/.test(process.env.YTMIND_EXTENSION_ID || "")
+    ? `chrome-extension://${process.env.YTMIND_EXTENSION_ID}`
+    : null;
+  const fromPairedExtension = !!pairedOrigin && origin === pairedOrigin;
   if (
-    (origin && origin !== `http://${req.headers.host}`) ||
+    (origin &&
+      origin !== `http://${req.headers.host}` &&
+      !fromPairedExtension) ||
     !["127.0.0.1", "localhost"].includes(
       new URL(`http://${req.headers.host}`).hostname,
     )
   ) {
     json(403, { error: "Use the local YTMind workspace." });
+    return true;
+  }
+  if (fromPairedExtension) {
+    res.setHeader("Access-Control-Allow-Origin", pairedOrigin);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  }
+  if (req.method === "OPTIONS") {
+    res.writeHead(204);
+    res.end();
+    return true;
+  }
+  if (url.pathname === "/api/media/health" && req.method === "GET") {
+    json(200, { ready: true, paired: fromPairedExtension });
     return true;
   }
   if (url.pathname === "/api/media" && req.method === "POST") {

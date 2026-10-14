@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "YTMind - Your video, understood",
-  "version": "3.0.21",
+  "version": "3.0.22",
   "minimum_chrome_version": "116",
   "description": "Turn YouTube evidence into study notes, actions, and a connected learning library.",
   "permissions": [
@@ -22,7 +22,8 @@
   },
   "host_permissions": [
     "https://www.youtube.com/*",
-    "https://api.groq.com/*"
+    "https://api.groq.com/*",
+    "http://127.0.0.1:4175/*"
   ],
   "background": {
     "service_worker": "background.js",
@@ -30,12 +31,8 @@
   },
   "content_scripts": [
     {
-      "matches": [
-        "https://www.youtube.com/*"
-      ],
-      "js": [
-        "content.js"
-      ],
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["content.js"],
       "run_at": "document_idle"
     }
   ],
@@ -57,16 +54,12 @@
     "128": "icons/icon128.png"
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; worker-src 'self'; connect-src 'self' https://api.groq.com"
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; worker-src 'self'; connect-src 'self' https://api.groq.com http://127.0.0.1:4175"
   },
   "web_accessible_resources": [
     {
-      "resources": [
-        "panel.html"
-      ],
-      "matches": [
-        "https://www.youtube.com/*"
-      ]
+      "resources": ["panel.html"],
+      "matches": ["https://www.youtube.com/*"]
     }
   ]
 }

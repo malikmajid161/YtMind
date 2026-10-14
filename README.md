@@ -74,3 +74,9 @@ Explicit live tests use only an ignored .env.local key: test:audio:live, test:ar
 Measured real workflows include the user's 6:36 Urdu Art Track, paste-link generation/verification, automatic code export, and notes for five authored lecture excerpts. The excerpts are not five full lecture videos. Some SAGE checks hit quotas and remained Unchecked. Raw failures and scope limitations are retained. See docs/VALIDATION.md and docs/VIDEO_COVERAGE.md.
 
 The research protocol targets English coding/technical tutorials. The paper is preliminary: synthetic pilots and integration tests do not establish competitor superiority or publication-ready accuracy. See research/PROTOCOL.md, research/PILOT_RESULTS.md and research/PAPER_DRAFT.md. Original plans are preserved in docs/original and v1 in the v1-before-rebuild tag.
+
+### Captionless videos in the extension
+
+The local audio helper can supply the full public video's audio when Chrome tab capture is unavailable. It fetches audio locally and the extension sends it directly to Groq for timestamped transcription, then generates notes. It does not require watching the whole video. Public availability, YouTube retrieval limits and API quotas still apply; musical transcription can be inaccurate.
+
+Run `npm run start:helper` from this project to start the helper at `127.0.0.1:4175`. Pair it with the unpacked extension ID using `YTMIND_EXTENSION_ID`, or an ignored `artifacts/extension-id.txt` containing that ID. Only that extension origin is accepted; API keys are never sent to the helper. With the helper running, Generate study notes automatically tries full audio when captions and substantial frame text are unavailable. The helper is a separate local process and must be running for this fallback.
