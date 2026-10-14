@@ -49,7 +49,7 @@ test("missing source never calls the API", async () => {
     generate({}, "chat", "hi", [], async () => {
       called = true;
     }),
-    /No matching/,
+    /No readable source/,
   );
   assert.equal(called, false);
 });

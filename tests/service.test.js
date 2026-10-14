@@ -161,3 +161,39 @@ test("failed caption retry preserves previously saved caption evidence", async (
     { text: "Install Python", startTime: 10 },
   ]);
 });
+
+test("Ask uses captured foreign-language context even when English keywords do not match", async () => {
+  const [service] = services();
+  await service.dispatch({
+    type: "SESSION",
+    videoId: "abcdefghijk",
+    title: "Urdu lecture",
+  });
+  await service.dispatch({
+    type: "IMPORT",
+    videoId: "abcdefghijk",
+    text: "یہ ایک کتاب ہے",
+  });
+  const oldFetch = globalThis.fetch;
+  let request;
+  globalThis.fetch = async (_, options) => {
+    request = JSON.parse(options.body);
+    return Response.json({
+      choices: [{ message: { content: "The source describes a book. [E1]" } }],
+    });
+  };
+  try {
+    const output = await service.dispatch({
+      type: "GENERATE",
+      videoId: "abcdefghijk",
+      mode: "chat",
+      query: "What object is discussed?",
+    });
+    assert.equal(output.coverage.selected, output.coverage.total);
+    assert.ok(output.evidence.length > 0);
+    assert.ok(JSON.stringify(request).includes("یہ ایک کتاب ہے"));
+    assert.ok(JSON.stringify(request).includes("clear English"));
+  } finally {
+    globalThis.fetch = oldFetch;
+  }
+});

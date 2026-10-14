@@ -116,3 +116,13 @@ Caption checkpoint regression results: 50/50 unit tests, build, browser UI integ
 - OCR now requests structured line data. Lines below the conservative engine-confidence gate of 60 are excluded from automatic text evidence; accepted text preserves original line whitespace. Raw OCR and uncertain lines remain stored and inspectable. This threshold is an engineering gate, not calibrated semantic accuracy. A supplied clean-caption fixture is retained while weak gibberish is excluded; actual user-frame accuracy is unmeasured.
 - Added Re-read frame for existing accepted/no-text frames. Retry clears prior active OCR until reprocessing completes. Old generated notes are unchanged and should be regenerated after re-reading sources.
 - 64 core tests pass; browser integration and packaged-extension tests pass. English 7/8 fixture accuracy and clean Urdu fixture exact result remain unchanged. Manifest/header 3.0.6. PDFs, image renders and marker output stay in ignored local artifacts.
+
+## 2026-10-14 — v3.0.7 Ask context and readable English
+
+- Fixed Ask reporting no source when English keywords do not match saved Urdu/Hindi evidence. Chat includes all captured chunks up to 18,000 text characters; longer sources keep bounded relevant retrieval and fall back to spread context on a lexical miss. Coverage still reports selected versus total. This does not claim every long video fits one request.
+- Truly empty readable sources now have a distinct message. Saved model summaries are not substituted for original evidence. Source absence answers must say not found in captured evidence rather than assert absence from the entire video.
+- New notes and answers are prompted in English with readable short paragraphs, concise bullets and explicit translation uncertainty. Raw evidence remains original for audit. Existing saved notes require regeneration.
+- PDF export labels raw text as an original-language source appendix to distinguish it from the generated answer.
+- 65 unit tests pass, including service-level English-question/Urdu-source regression with a mocked provider; installable 3.0.7 ZIP built. This is not a measured live answer-accuracy result.
+- Remaining broader work: persistent automatic history and favorites/research separation, robust on-page/PWA entry, autonomous visual processing, explicitly labelled outside-knowledge answers, and held-out human evaluation. Do not describe these as completed by this focused fix.
+- Browser integration and packaged MV3 checks also pass after updating the empty-source UI assertion. API responses in these integration checks are mocked; browser/storage behavior is real.

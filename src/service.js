@@ -576,9 +576,20 @@ export function createService({
             await store.put("sessions", current);
           });
       }
-      const batches = deep
+      let batches = deep
         ? batchEvidence(all)
         : [retrieve(all, String(m.query || "").slice(0, 2000), m.mode)];
+      // Paraphrases and cross-language questions can have no keyword matches.
+      // Let the model assess actual source support instead of reporting no source.
+      if (m.mode === "chat" && all.length) {
+        batches = [
+          all.reduce((size, e) => size + e.text.length, 0) <= 18000
+            ? all
+            : batches[0].length
+              ? batches[0]
+              : retrieve(all, "", "notes"),
+        ];
+      }
       const batchIndex = deep
         ? Math.max(0, Math.floor(Number(m.batchIndex) || 0))
         : 0;

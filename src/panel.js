@@ -62,7 +62,9 @@ const sourceContext = () =>
   ]);
 function notice(text, error = false) {
   sourceNoticeContext =
-    error && text.startsWith("No matching source content yet")
+    error &&
+    (text.startsWith("No matching source content yet") ||
+      text.startsWith("No readable source text"))
       ? sourceContext()
       : null;
   $("#notice").textContent = text;

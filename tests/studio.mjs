@@ -120,7 +120,7 @@ export async function testStudio(browser, port = 4174) {
       .waitFor();
     await page.locator('[data-generate="notes"]').click();
     await page
-      .getByText("No matching source content yet.", { exact: false })
+      .getByText("No readable source text is available yet.", { exact: false })
       .waitFor();
     await page.locator('[data-tab="chat"]').click();
     await page.waitForFunction(() => document.querySelector("#notice").hidden);
