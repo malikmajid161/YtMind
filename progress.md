@@ -285,3 +285,10 @@ Caption checkpoint regression results: 50/50 unit tests, build, browser UI integ
 - Video analysis uses a strict JSON schema on supported GPT-OSS models, low reasoning effort, and a 6000-token output budget (previously 2400 for all requests). Other models retain JSON-object mode and source-quote validation.
 - The exact user's 400 response body was unavailable, so its cause is not established. A direct live request using the locally configured key and default model succeeded, showing that this local model/key combination was available.
 - Verified 98 tests, build and a real Groq analysis call on a controlled historical-text fixture: one source-matched key point retained, status unchecked. This is request/integration verification, not real-video accuracy measurement.
+
+## 20 October 2026 — v3.0.30: professional explanations
+
+- Updated shared Notes/Ask writing guidance to develop ideas in coherent paragraphs, explain source-backed reasoning and cause/effect, use informative structure and avoid generic bullet-only answers. Depth scales with the question and available evidence.
+- Video analysis now leads with an overview and connected detailed explanations, followed by consolidated key terms. Removed repeated Target/English rendering/Context/Speech context/Keywords blocks and moved source limitations to the end. Quotes and citations remain grounded; uncertainty is preserved.
+- Verified 98 tests and build. A real Groq call on a controlled database-index excerpt produced a clear explanation of read benefits, write/storage costs and measurement before adding indexes. This validates a sample output, not equivalence to another model or general quality superiority.
+- Existing saved reports are preserved; regenerate to use the new writing style.
