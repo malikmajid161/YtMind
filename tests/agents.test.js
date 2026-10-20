@@ -261,3 +261,60 @@ test("a title cannot become invented frame lyrics when OCR contains only a fragm
   assert.ok(!output.answer.includes("glance of mercy"));
   assert.equal(output.verification.status, "unchecked");
 });
+
+test("analysis requests use strict schemas on GPT OSS and bounded JSON-validation recovery", async () => {
+  const requests = [];
+  const output = await complete(
+    { apiKey: "fixture", model: "openai/gpt-oss-120b" },
+    "Return JSON",
+    "source",
+    {
+      json: true,
+      jsonSchema: {
+        type: "object",
+        properties: {},
+        required: [],
+        additionalProperties: false,
+      },
+      maxTokens: 6000,
+      fetcher: async (_url, request) => {
+        requests.push(JSON.parse(request.body));
+        return requests.length === 1
+          ? Response.json(
+              {
+                error: {
+                  code: "json_validate_failed",
+                  message: "private source secret",
+                },
+              },
+              { status: 400 },
+            )
+          : Response.json({ choices: [{ message: { content: "{}" } }] });
+      },
+    },
+  );
+  assert.deepEqual(output, {});
+  assert.equal(requests.length, 2);
+  assert.equal(requests[0].response_format.json_schema.strict, true);
+  assert.equal(requests[0].max_tokens, 6000);
+  assert.equal(requests[0].reasoning_effort, "low");
+});
+test("400 errors distinguish JSON failures and model availability without exposing response bodies", async () => {
+  for (const [code, message, pattern] of [
+    ["json_validate_failed", "secret source", /required analysis JSON/],
+    ["model_decommissioned", "secret source", /model is unavailable/],
+  ]) {
+    let count = 0;
+    await assert.rejects(
+      complete({ apiKey: "secret" }, "JSON", "source", {
+        json: true,
+        fetcher: async () => {
+          count++;
+          return Response.json({ error: { code, message } }, { status: 400 });
+        },
+      }),
+      (e) => pattern.test(e.message) && !e.message.includes("secret"),
+    );
+    assert.equal(count, code === "json_validate_failed" ? 2 : 1);
+  }
+});

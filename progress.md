@@ -278,3 +278,10 @@ Caption checkpoint regression results: 50/50 unit tests, build, browser UI integ
 - While the native workspace is open, each captionless Short automatically starts paired-helper full-audio ingestion after a five-second settling period. Requires configured API key; respects automatic-notes preference; one job at a time; no repeated automatic retries per Short per workspace lifetime.
 - Existing automatic Library history remains enabled for all recorded videos and Shorts without pinning. Captured transcript, frames and outputs survive navigation and reopening; pre-install viewing cannot be recovered as source content.
 - Verified 96 tests and extension build. Browser integration uses mocked API output, real browser/storage/OCR. Real-video extraction/translation accuracy is not a completed human benchmark.
+
+## 20 October 2026 — v3.0.29: structured analysis request recovery
+
+- Replaced the generic 400 advice with distinct safe messages for JSON-validation failures, unavailable models and context limits. Raw provider messages/source text are not displayed. A JSON-validation failure receives one bounded retry.
+- Video analysis uses a strict JSON schema on supported GPT-OSS models, low reasoning effort, and a 6000-token output budget (previously 2400 for all requests). Other models retain JSON-object mode and source-quote validation.
+- The exact user's 400 response body was unavailable, so its cause is not established. A direct live request using the locally configured key and default model succeeded, showing that this local model/key combination was available.
+- Verified 98 tests, build and a real Groq analysis call on a controlled historical-text fixture: one source-matched key point retained, status unchecked. This is request/integration verification, not real-video accuracy measurement.
