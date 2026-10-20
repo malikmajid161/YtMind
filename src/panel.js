@@ -343,6 +343,20 @@ function render() {
   } else if (active === "graph") {
     html += `<button class="primary" id="extract-graph" ${!s || requestBusy ? "disabled" : ""}>Connect this video’s concepts<span>↗</span></button><div class="toolbar"><button class="secondary" id="export-graph">Export graph JSON</button></div><label class="sr-only" for="graph-search">Search concepts</label><input id="graph-search" placeholder="Find a concept…" type="search"> <div id="graph-area"></div><p class="muted">Saved graph evidence persists. Connections describe what videos say, and are not independently verified facts.</p>`;
   } else if (active === "lab") {
+    html += `<button class="primary" data-generate="talkshow" ${!s || requestBusy ? "disabled" : ""}>Analyze talk show / Short<span>↗</span></button><p class="muted">Review captured speech for institutional criticism, allegations, harsh language, threats and law references. Every captured transcript section is processed; results are saved in history. Descriptive analysis, with unverified interpretations and legal claims.</p>`;
+    const discussion = s?.outputs?.filter((o) => o.mode === "talkshow").at(-1);
+    if (discussion) {
+      const report = discussion.jobId
+        ? combineParts(s.outputs.filter((o) => o.jobId === discussion.jobId))
+        : discussion;
+      html += coverageHTML(report) + outputHTML(report);
+      if (
+        (report.completedParts || report.batchIndex + 1) <
+          report.totalBatches &&
+        !requestBusy
+      )
+        html += `<button class="secondary" data-resume="${esc(report.jobId)}" data-mode="talkshow">Continue remaining discussion sections</button>`;
+    }
     html += `<button class="primary" data-lab="conflicts" ${!s || requestBusy ? "disabled" : ""}>Compare narration with screen text<span>↗</span></button><div class="toolbar"><button class="secondary" data-lab="preflight" ${!s || requestBusy ? "disabled" : ""}>Build tutorial preflight</button></div><p class="muted">The comparison needs caption and OCR evidence within 75 seconds. Retained excerpts are matched exactly; interpretations remain hypotheses. A sampled preflight may miss requirements outside its selected source.</p>`;
     const outputs = (s?.outputs || []).filter((o) =>
       ["lab-conflicts", "preflight"].includes(o.mode),
@@ -514,7 +528,7 @@ const badgeLabels = {
 };
 function outputHTML(o) {
   const v = o.verification || { status: "unchecked", claims: [] };
-  return `<article class="result" data-output="${esc(o.id)}"><div class="result-head"><span class="eyebrow">${o.mode === "speaking" ? "YOUR SPEAKING NOTES" : o.mode === "notes" ? "YOUR STUDY NOTES" : o.mode === "actions" ? "YOUR ACTION PLAN" : o.generalKnowledge ? "VIDEO + GENERAL KNOWLEDGE" : "FROM YOUR SOURCES"}</span><span class="badge ${esc(v.status)}">${o.processing ? "Checking support�" : o.generalKnowledge ? "Includes general knowledge" : badgeLabels[v.status] || "Unchecked"}</span></div><h3 class="result-source-title">${esc(o.mode === "research" ? "Multi-video research" : o.evidence[0]?.title || "Source notes")}</h3><div class="markdown" dir="auto">${markdown(o.answer, o.evidence)}</div><div class="sources"><div class="eyebrow">BACK TO THE SOURCE · ${o.evidence.length} MOMENTS</div>${o.evidence
+  return `<article class="result" data-output="${esc(o.id)}"><div class="result-head"><span class="eyebrow">${o.mode === "talkshow" ? "DISCUSSION ANALYSIS" : o.mode === "speaking" ? "YOUR SPEAKING NOTES" : o.mode === "notes" ? "YOUR STUDY NOTES" : o.mode === "actions" ? "YOUR ACTION PLAN" : o.generalKnowledge ? "VIDEO + GENERAL KNOWLEDGE" : "FROM YOUR SOURCES"}</span><span class="badge ${esc(v.status)}">${o.processing ? "Checking support�" : o.generalKnowledge ? "Includes general knowledge" : badgeLabels[v.status] || "Unchecked"}</span></div><h3 class="result-source-title">${esc(o.mode === "research" ? "Multi-video research" : o.evidence[0]?.title || "Source notes")}</h3><div class="markdown" dir="auto">${markdown(o.answer, o.evidence)}</div><div class="sources"><div class="eyebrow">BACK TO THE SOURCE · ${o.evidence.length} MOMENTS</div>${o.evidence
     .map(
       (e, i) =>
         `<div class="source-proof"><button class="source-link" data-seek="${e.startTime}" data-video="${esc(e.videoId)}"><span>E${i + 1} · ${esc(e.title)}<small>${esc(e.kind)} ${session()?.captionStatus === "manual" ? "· manually supplied" : ""}</small></span><span class="stamp">${time(e.startTime)} ↗</span></button><a class="print-source-link" href="https://www.youtube.com/watch?v=${encodeURIComponent(e.videoId)}&t=${Math.floor(e.startTime)}s">https://www.youtube.com/watch?v=${esc(e.videoId)}&amp;t=${Math.floor(e.startTime)}s</a><details><summary>Proof view · read stored excerpt</summary><pre>${esc(e.text)}</pre></details></div>`,
@@ -587,7 +601,7 @@ async function run(mode, query = "", resumeJob = null, sourceReady = false) {
     !resumeJob &&
     session() &&
     !session().transcript?.length &&
-    !frames.some((f) => (f.ocrText || "").length >= 80)
+    (mode === "talkshow" || !frames.some((f) => (f.ocrText || "").length >= 80))
   ) {
     let helperReady = false;
     try {

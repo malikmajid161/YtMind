@@ -37,7 +37,9 @@ export async function testStudio(browser, port = 4174) {
       const body = route.request().postDataJSON(),
         system = body.messages[0].content;
       let content;
-      if (system.startsWith("Extract only programming")) {
+      if (system.startsWith("Analyze public talk-show speech"))
+        content = JSON.stringify({ findings: [], moreFindings: false });
+      else if (system.startsWith("Extract only programming")) {
         const source = body.messages[1].content;
         const ref = Number(
           source.match(/\[E(\d+)\][^\[]*const count = 123;/)?.[1],
@@ -295,6 +297,16 @@ export async function testStudio(browser, port = 4174) {
       .waitFor();
     await page.locator('[data-lab="preflight"]').click();
     await page.getByText("Tutorial preflight", { exact: true }).waitFor();
+    await page.locator('[data-generate="talkshow"]').click();
+    await page.getByText("DISCUSSION ANALYSIS", { exact: true }).waitFor();
+    await page
+      .getByText("No quote-backed matches were retained in this section.", {
+        exact: false,
+      })
+      .waitFor();
+    await page.reload();
+    await page.locator('[data-tab="lab"]').click();
+    await page.getByText("DISCUSSION ANALYSIS", { exact: true }).waitFor();
     await page.locator('[data-tab="library"]').click();
     await page.locator("#research-topic").fill("Node.js");
     await page.locator("#research-form .primary").click();

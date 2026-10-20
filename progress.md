@@ -258,3 +258,14 @@ Caption checkpoint regression results: 50/50 unit tests, build, browser UI integ
 - Opening source with ready helper no longer attempts blocked tabCapture or displays the misleading toolbar activation warning. Displays full-video audio availability; clicking Generate starts fetching/transcription and later replaces source status with ASR segment count. Helper failures remain explicit rather than silently regenerating the old insufficient-source answer.
 - 86 unit tests and native integration pass. One earlier native run timed out at pre-existing title/focus wait; subsequent full native run passed. This does not claim a newly measured production ASR accuracy result; previous real six-minute audio/provider result remains the live evidence.
 - Working dist 3.0.26 rebuilt directly without ZIP. Source history preserved.
+
+## 20 October 2026 — v3.0.27: talk-show and Shorts speech analysis
+
+- Restored tracked project source from GitHub to the original app path after the workspace folder was found missing. No local files overwritten. Ignored configuration, media-tool downloads and API keys are not recovered by Git.
+- Added Lab → Analyze talk show / Short. Reports identify institutional criticism, allegations, insults, profanity, possible threats, policy discussion and law references, with English renderings, context, interpreted keywords and timestamped source proof.
+- Every retained finding must contain a quotation matching a captured speech excerpt. Frame OCR and title metadata cannot establish spoken claims. Interpretations and translations remain unchecked; criticism is not treated as illegal, and legal descriptions are explicitly unverified speaker claims.
+- All captured speech chunks are processed in bounded sections even when Deep mode is off. Snapshot, progress, reports, resume and history use the existing generation pipeline. Frame-only videos request audio rather than substituting OCR for speech.
+- Shorts use the existing active-Short caption/navigation handling and shared video identifier/audio/report pipeline. This does not imply full-video audio is available when only live playback fragments were captured.
+- Verification: 92 automated tests passed and extension build succeeded. Added forged-quote/frame rejection, law-labeling, Shorts batching, full-section service coverage and cross-instance persistence tests. Browser integration uses mocked provider outputs; real talk-show accuracy has not been measured. See final test update below.
+- Updated working app/dist in place; no ZIP created.
+- Final browser verification passed in installed Chrome: new discussion report generation and reload persistence, existing workspace workflows, 320px layout and no page errors. Groq responses mocked; browser, IndexedDB and OCR real.

@@ -7,6 +7,7 @@ import {
 } from "./core.js";
 import { generate, extractGraph } from "./agents.js";
 import { analyzeLab } from "./lab.js";
+import { analyzeDiscussion } from "./talkshow.js";
 import { listModels } from "./groq.js";
 import { parseTranscript, validateSegments } from "./source.js";
 import { extractCode } from "./code.js";
@@ -561,10 +562,12 @@ export function createService({
           sessions.map(async (s) => chunks(s, await store.frames(s.id))),
         )
       ).flat();
+      if (m.mode === "talkshow") all = all.filter((e) => e.kind === "caption");
       const deep =
-        config.deep &&
-        ["notes", "actions", "speaking"].includes(m.mode) &&
-        !m.auto;
+        m.mode === "talkshow" ||
+        (config.deep &&
+          ["notes", "actions", "speaking"].includes(m.mode) &&
+          !m.auto);
       const jobId = deep ? String(m.jobId || crypto.randomUUID()) : null;
       if (deep) {
         const s = sessions[0];
@@ -590,7 +593,7 @@ export function createService({
           });
       }
       let batches = deep
-        ? batchEvidence(all)
+        ? batchEvidence(all, m.mode === "talkshow" ? 7000 : 14000)
         : [retrieve(all, String(m.query || "").slice(0, 2000), m.mode)];
       // Paraphrases and cross-language questions can have no keyword matches.
       // Let the model assess actual source support instead of reporting no source.
@@ -624,26 +627,32 @@ export function createService({
           await store.put("sessions", current);
         });
       };
-      const result = await generate(
-        config,
-        m.mode,
-        m.query,
-        evidence,
-        undefined,
-        async (draft) => {
-          draft.coverage = { selected: evidence.length, total: all.length };
-          if (deep)
-            Object.assign(draft, {
-              batchIndex,
-              totalBatches: batches.length,
-              jobId,
-            });
-          await saveOutput(draft);
-          await Promise.resolve(
-            emit({ type: "OUTPUT_AVAILABLE", videoId: targetId }),
-          ).catch(() => {});
-        },
-      );
+      const result =
+        m.mode === "talkshow"
+          ? await analyzeDiscussion(config, evidence)
+          : await generate(
+              config,
+              m.mode,
+              m.query,
+              evidence,
+              undefined,
+              async (draft) => {
+                draft.coverage = {
+                  selected: evidence.length,
+                  total: all.length,
+                };
+                if (deep)
+                  Object.assign(draft, {
+                    batchIndex,
+                    totalBatches: batches.length,
+                    jobId,
+                  });
+                await saveOutput(draft);
+                await Promise.resolve(
+                  emit({ type: "OUTPUT_AVAILABLE", videoId: targetId }),
+                ).catch(() => {});
+              },
+            );
       result.coverage = { selected: evidence.length, total: all.length };
       if (deep) {
         result.batchIndex = batchIndex;

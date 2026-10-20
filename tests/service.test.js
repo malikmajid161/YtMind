@@ -305,3 +305,71 @@ test("automatic history retains unpinned sources and outputs after expiry and re
     true,
   );
 });
+
+test("talk-show analysis processes all speech sections with deep disabled and resumes from saved history", async () => {
+  const [a, b] = services();
+  const videoId = "Uinx1py7Jsg";
+  await a.dispatch({ type: "SESSION", videoId, title: "Short or talk show" });
+  await a.dispatch({
+    type: "TRANSCRIPT",
+    videoId,
+    segments: Array.from({ length: 20 }, (_, i) => ({
+      startTime: i * 30,
+      text: "The army policy is wrong. " + "Discussion context. ".repeat(70),
+    })),
+  });
+  const oldFetch = globalThis.fetch;
+  globalThis.fetch = async () =>
+    Response.json({
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({
+              findings: [
+                {
+                  category: "institutional_criticism",
+                  target: "Army policy",
+                  rendering: "The speaker criticizes army policy.",
+                  context: "Policy discussion.",
+                  stance: "speaker statement",
+                  keywords: ["policy"],
+                  support: { ref: 1, quote: "The army policy is wrong." },
+                },
+              ],
+            }),
+          },
+        },
+      ],
+    });
+  try {
+    let result = await a.dispatch({
+      type: "GENERATE",
+      videoId,
+      mode: "talkshow",
+    });
+    assert.ok(result.totalBatches > 1);
+    const total = result.totalBatches;
+    const jobId = result.jobId;
+    for (let i = 1; i < total; i++)
+      result = await b.dispatch({
+        type: "GENERATE",
+        videoId,
+        mode: "talkshow",
+        jobId,
+        batchIndex: i,
+      });
+    const session = (await b.dispatch({ type: "STATE" })).sessions[0];
+    const outputs = session.outputs.filter((o) => o.jobId === jobId);
+    assert.equal(outputs.length, total);
+    assert.equal(
+      outputs.reduce((n, o) => n + o.coverage.selected, 0),
+      outputs[0].coverage.total,
+    );
+    assert.ok(
+      outputs.every((o) => o.evidence.every((e) => e.kind === "caption")),
+    );
+    assert.equal(session.saved, true);
+  } finally {
+    globalThis.fetch = oldFetch;
+  }
+});
