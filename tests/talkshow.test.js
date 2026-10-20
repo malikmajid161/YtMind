@@ -91,3 +91,18 @@ test("frames-only discussion fails instead of inventing audio", async () => {
     /transcribed audio/,
   );
 });
+
+test("unmatched generated findings fail rather than saving a misleading empty report", async () => {
+  await assert.rejects(
+    analyzeDiscussion({}, evidence, async () => ({
+      findings: [{ ...finding, support: { ref: 1, quote: "Invented quote" } }],
+    })),
+    /No report was saved/,
+  );
+});
+test("ordinary historical content is retained as a neutral key point", async () => {
+  const result = await analyzeDiscussion({}, evidence, async () => ({
+    findings: [{ ...finding, category: "key_point" }],
+  }));
+  assert.match(result.answer, /Key point or claim/);
+});

@@ -79,14 +79,14 @@ function ensureLauncher() {
   if (
     existing &&
     existing.dataset.ytmindInstance === contentInstance &&
-    existing.dataset.ytmindVersion === "3.0.26"
+    existing.dataset.ytmindVersion === "3.0.28"
   ) {
     if (existing.parentElement !== host) host.append(existing);
     return;
   }
   existing?.remove();
   const button = document.createElement("button");
-  button.dataset.ytmindVersion = "3.0.26";
+  button.dataset.ytmindVersion = "3.0.28";
   button.dataset.ytmindInstance = contentInstance;
   button.id = "ytmind-launch";
   button.textContent = "🧠 YTMind";
@@ -389,6 +389,7 @@ const handleMessage = (m, sender, respond) => {
     respond({
       navigating: !!navigationStarted,
       videoId: current,
+      isShort: location.pathname.startsWith("/shorts/"),
       title: videoTitle(),
       capturing: Date.now() < lease,
       currentTime: videoElement()?.currentTime || 0,

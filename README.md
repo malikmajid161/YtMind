@@ -81,8 +81,10 @@ The local audio helper can supply the full public video's audio when Chrome tab 
 
 Run `npm run start:helper` from this project to start the helper at `127.0.0.1:4175`. Pair it with the unpacked extension ID using `YTMIND_EXTENSION_ID`, or an ignored `artifacts/extension-id.txt` containing that ID. Only that extension origin is accepted; API keys are never sent to the helper. With the helper running, Generate study notes automatically tries full audio when captions and substantial frame text are unavailable. The helper is a separate local process and must be running for this fallback.
 
-### Talk-show and Shorts speech reports (3.0.27)
+### Video and Shorts content reports (3.0.28)
 
-Open a video or Short, then choose **Lab → Analyze talk show / Short**. Captured captions or transcribed audio are analyzed section by section for criticism of institutions (including the military), allegations, harsh language, possible threats, policy discussions and references to laws. English reports include context, keywords and timestamped source references. Results save automatically in history; unfinished reports offer **Continue remaining discussion sections**.
+Open a video or Short, then choose **Lab → Analyze video / Short**. Captured captions or transcribed audio are analyzed section by section for main ideas, claims, instructions, events and opinions, plus institutional criticism, allegations, harsh language, possible threats and law references when present. English reports include context, keywords and timestamped source references. Results save automatically in history; unfinished reports offer **Continue remaining discussion sections**.
 
 The report covers captured speech, not necessarily the full video. Without complete captions, use audio transcription to obtain fuller coverage. Frame text alone is insufficient to establish speech. Quotations are checked against stored text, while translations and category judgments require review. Legal references describe the speaker's claims and are not independently checked legal advice. Original source wording remains in proof views and exports.
+
+With the native workspace open, captionless Shorts automatically request full-audio transcription after a five-second settling period. The paired local helper and a configured Groq key are required. One job runs at a time; downloaded audio and API processing are not instantaneous. Every video and Short recorded by YTMind is retained in Library without pinning. Older outputs remain as generated until rerun.
