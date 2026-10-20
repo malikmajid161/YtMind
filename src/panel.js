@@ -1,3 +1,4 @@
+import { contextMessage } from "./extension-context.js";
 import { createShortsFollower } from "./shorts-follow.js";
 if (new URLSearchParams(location.search).has("embedded"))
   document.documentElement.classList.add("embedded");
@@ -73,6 +74,7 @@ function notice(text, error = false) {
       text.startsWith("No readable source text"))
       ? sourceContext()
       : null;
+  text = contextMessage(text);
   $("#notice").textContent = text;
   $("#notice").className = error ? "error" : "";
   $("#notice").hidden = !text;
@@ -253,7 +255,7 @@ const headings = {
   library: [
     "Keep the good stuff.",
     "YOUR LIBRARY",
-    "Pin videos to keep their evidence, then explore them together.",
+    "Your videos and notes are saved automatically. Select videos to explore them together.",
   ],
   lab: [
     "Question the evidence.",
@@ -394,7 +396,7 @@ function render() {
     const history = [...state.sessions].sort(
       (a, b) => (b.lastSeenAt || b.createdAt) - (a.lastSeenAt || a.createdAt),
     );
-    html += `<section class="batch-card"><h3>Lecture notes agent</h3><p class="muted">Generate notes for 1–10 selected lectures. Every captured source section is processed through Groq; progress is saved between requests. Keep this workspace open.</p><div class="source-controls"><button id="batch-start" class="primary" ${!pinned.length || requestBusy ? "disabled" : ""}>Generate all lecture notes</button>${state.batch && state.batch.status !== "complete" ? `<button id="batch-resume" class="secondary" ${requestBusy ? "disabled" : ""}>Continue saved batch</button><button id="batch-discard" class="text-button" ${requestBusy ? "disabled" : ""}>Discard batch progress</button>` : ""}${batchRunning ? '<button id="batch-pause" class="secondary">Pause after current section</button>' : ""}</div>${state.batch ? `<ul>${state.batch.entries.map((e) => `<li>${esc(e.title)} · ${e.nextBatch}/${e.totalBatches} sections · ${esc(e.status)}${e.error ? ` · ${esc(e.error)}` : ""}</li>`).join("")}</ul><div class="toolbar"><button id="batch-export" class="secondary">Download lecture notes ZIP</button><button id="batch-pdf" class="secondary">Save lecture notes as PDF</button></div>` : ""}</section>`;
+    html += `<section class="batch-card"><h3>Study selected videos</h3><p class="muted">Turn up to 10 selected videos into organized notes. Your progress is saved as you go. Leave YTMind open until your notes are ready.</p><div class="source-controls"><button id="batch-start" class="primary" ${!pinned.length || requestBusy ? "disabled" : ""}>Generate all lecture notes</button>${state.batch && state.batch.status !== "complete" ? `<button id="batch-resume" class="secondary" ${requestBusy ? "disabled" : ""}>Continue saved batch</button><button id="batch-discard" class="text-button" ${requestBusy ? "disabled" : ""}>Discard batch progress</button>` : ""}${batchRunning ? '<button id="batch-pause" class="secondary">Pause after current section</button>' : ""}</div>${state.batch ? `<ul>${state.batch.entries.map((e) => `<li>${esc(e.title)} · ${e.nextBatch}/${e.totalBatches} sections · ${esc(e.status)}${e.error ? ` · ${esc(e.error)}` : ""}</li>`).join("")}</ul><div class="toolbar"><button id="batch-export" class="secondary">Download lecture notes ZIP</button><button id="batch-pdf" class="secondary">Save lecture notes as PDF</button></div>` : ""}</section>`;
     html += `<h3>Video history · ${history.length}</h3>`;
     html += history.length
       ? history
@@ -1359,8 +1361,7 @@ async function ingestLink(id, language, nextMode = "notes", nextQuery = "") {
       await api("AUDIO_STATE", {
         videoId: id,
         status: "listening",
-        message:
-          "Fetching full-video audio locally; transcription follows with Groq…",
+        message: "Preparing the video’s audio…",
       });
     notice(
       "Fetching the video's audio… This happens locally; private or unavailable sources may fail.",
@@ -1404,7 +1405,7 @@ async function ingestLink(id, language, nextMode = "notes", nextQuery = "") {
     let segments = [];
     for (const [index, chunk] of job.chunks.entries()) {
       notice(
-        `Transcribing section ${index + 1}/${job.chunks.length} with Groq…`,
+        `Understanding the audio · part ${index + 1} of ${job.chunks.length}…`,
       );
       let audioBlob;
       if (studioMode) {

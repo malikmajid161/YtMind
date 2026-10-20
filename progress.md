@@ -292,3 +292,10 @@ Caption checkpoint regression results: 50/50 unit tests, build, browser UI integ
 - Video analysis now leads with an overview and connected detailed explanations, followed by consolidated key terms. Removed repeated Target/English rendering/Context/Speech context/Keywords blocks and moved source limitations to the end. Quotes and citations remain grounded; uncertainty is preserved.
 - Verified 98 tests and build. A real Groq call on a controlled database-index excerpt produced a clear explanation of read benefits, write/storage costs and measurement before adding indexes. This validates a sample output, not equivalence to another model or general quality superiority.
 - Existing saved reports are preserved; regenerate to use the new writing style.
+
+## 20 October 2026 — v3.0.31: reload recovery and plain-language Library
+
+- Invalidated content contexts now stop timers, listeners and capture requests, with a user-initiated refresh/reconnect launcher instead of further raw API failures. When the updated content script attaches, an existing embedded panel document is refreshed once to replace its stale context. Saved history is untouched.
+- Normalized the panel's context-invalidated notice to actionable refresh instructions. Verified 100 unit/integration tests and build; Chrome browser UI verification recorded below. These checks do not claim a live user-profile extension reload was reproduced.
+- Library copy now states that videos and notes save automatically; selecting videos is for studying them together. Removed provider/internal processing wording from the lecture notes card and routine audio progress messages, retaining meaningful settings/privacy disclosures.
+- Chrome UI/workspace integration passed with mocked provider responses, real browser/storage/OCR, no page errors and responsive layout checks.

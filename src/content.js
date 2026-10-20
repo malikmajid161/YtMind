@@ -1,3 +1,4 @@
+import { extensionAvailable, contextMessage } from "./extension-context.js";
 import { readDrawerWidth, saveDrawerWidth } from "./drawer-preferences.js";
 globalThis.ytmindContentLifetime?.abort();
 const contentLifetime = new AbortController();
@@ -37,8 +38,31 @@ let current = null,
   navigationStarted = 0,
   resumeUntil = 0,
   captionController = null;
+function retireContext() {
+  contentLifetime.abort();
+  const button = document.getElementById("ytmind-launch");
+  if (button?.dataset.ytmindInstance === contentInstance) {
+    button.textContent = "Refresh to reconnect YTMind";
+    button.title = "YTMind was updated. Your saved history is retained.";
+    button.onclick = () => location.reload();
+  }
+}
 const send = async (m) => {
-  const r = await chrome.runtime.sendMessage(m);
+  if (!extensionAvailable()) {
+    retireContext();
+    throw new Error(contextMessage("Extension context invalidated"));
+  }
+  let r;
+  try {
+    r = await chrome.runtime.sendMessage(m);
+  } catch (e) {
+    if (
+      !extensionAvailable() ||
+      /extension context invalidated/i.test(e.message)
+    )
+      retireContext();
+    throw new Error(contextMessage(e.message));
+  }
   if (r?.error) throw new Error(r.error);
   return r?.data;
 };
@@ -73,20 +97,32 @@ async function captions(videoId, token) {
   });
 }
 function ensureLauncher() {
+  if (!extensionAvailable()) {
+    retireContext();
+    return;
+  }
   const host = document.fullscreenElement || document.body;
   if (!host) return;
   const existing = document.getElementById("ytmind-launch");
   if (
     existing &&
     existing.dataset.ytmindInstance === contentInstance &&
-    existing.dataset.ytmindVersion === "3.0.30"
+    existing.dataset.ytmindVersion === "3.0.31"
   ) {
     if (existing.parentElement !== host) host.append(existing);
     return;
   }
   existing?.remove();
+  // An open embedded panel still belongs to the old extension context after
+  // reload. Replace its document once when the new content instance attaches.
+  const oldDrawer = document.getElementById("ytmind-drawer");
+  if (oldDrawer && oldDrawer.dataset.ytmindInstance !== contentInstance) {
+    const iframe = oldDrawer.querySelector("iframe");
+    if (iframe) iframe.src = chrome.runtime.getURL("panel.html?embedded");
+    oldDrawer.dataset.ytmindInstance = contentInstance;
+  }
   const button = document.createElement("button");
-  button.dataset.ytmindVersion = "3.0.30";
+  button.dataset.ytmindVersion = "3.0.31";
   button.dataset.ytmindInstance = contentInstance;
   button.id = "ytmind-launch";
   button.textContent = "🧠 YTMind";
@@ -109,6 +145,10 @@ function ensureLauncher() {
     boxShadow: "0 4px 24px #0004",
   });
   button.onclick = () => {
+    if (!extensionAvailable()) {
+      retireContext();
+      return;
+    }
     const existing = document.getElementById("ytmind-drawer");
     if (existing) {
       if (existing.ytmindClose) existing.ytmindClose();
@@ -118,6 +158,7 @@ function ensureLauncher() {
     }
     const drawer = document.createElement("div");
     drawer.id = "ytmind-drawer";
+    drawer.dataset.ytmindInstance = contentInstance;
     Object.assign(drawer.style, {
       position: "fixed",
       top: "12px",
@@ -377,6 +418,10 @@ async function capture(manual = false) {
   }
 }
 const handleMessage = (m, sender, respond) => {
+  if (!extensionAvailable()) {
+    retireContext();
+    return;
+  }
   if (sender.id !== chrome.runtime.id) return;
   if (m.type === "OPEN_DRAWER") {
     ensureLauncher();
@@ -451,7 +496,10 @@ document.addEventListener(
   { signal: contentLifetime.signal },
 );
 const contentTimer = setInterval(() => {
-  if (!chrome.runtime?.id) return;
+  if (!extensionAvailable()) {
+    retireContext();
+    return;
+  }
   ensureLauncher();
   if (navigationStarted && Date.now() - navigationStarted > 10000) {
     navigationStarted = 0;
