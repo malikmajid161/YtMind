@@ -106,3 +106,40 @@ test("ordinary historical content is retained as a neutral key point", async () 
   }));
   assert.match(result.answer, /Key point or claim/);
 });
+
+test("speaker names require the exact speaker label on the supporting statement", () => {
+  const source = [
+    {
+      ...evidence[0],
+      text: "Ayesha: We should compare the maps. Hassan is a guest.",
+    },
+  ];
+  const base = {
+    ...finding,
+    speaker: "Ayesha",
+    support: { ref: 1, quote: "Ayesha: We should compare the maps." },
+  };
+  assert.equal(
+    validateDiscussion({ findings: [base] }, source).findings[0].speaker,
+    "Ayesha",
+  );
+  assert.equal(
+    validateDiscussion({ findings: [{ ...base, speaker: "Hassan" }] }, source)
+      .findings[0].speaker,
+    null,
+  );
+  assert.equal(
+    validateDiscussion(
+      {
+        findings: [
+          {
+            ...base,
+            support: { ref: 1, quote: "We should compare the maps." },
+          },
+        ],
+      },
+      source,
+    ).findings[0].speaker,
+    null,
+  );
+});

@@ -291,6 +291,15 @@ export async function testStudio(browser, port = 4174) {
       { timeout: 30000 },
     );
     await page.locator('[data-tab="lab"]').click();
+    await page.locator("#full-source-timeline > summary").click();
+    assert.ok((await page.locator("#moment-list .source-proof").count()) > 0);
+    await page
+      .locator("#moment-search")
+      .fill("phrase-that-is-not-present-anywhere");
+    assert.equal(await page.locator("#moment-list .source-proof").count(), 0);
+    await page.locator("#moment-search").fill("");
+    assert.ok((await page.locator("#moment-list .source-proof").count()) > 0);
+    await page.locator("#full-source-timeline > summary").click();
     await page.locator('[data-lab="conflicts"]').click();
     await page
       .getByText("The source versions differ.", { exact: false })

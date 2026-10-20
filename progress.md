@@ -299,3 +299,10 @@ Caption checkpoint regression results: 50/50 unit tests, build, browser UI integ
 - Normalized the panel's context-invalidated notice to actionable refresh instructions. Verified 100 unit/integration tests and build; Chrome browser UI verification recorded below. These checks do not claim a live user-profile extension reload was reproduced.
 - Library copy now states that videos and notes save automatically; selecting videos is for studying them together. Removed provider/internal processing wording from the lecture notes card and routine audio progress messages, retaining meaningful settings/privacy disclosures.
 - Chrome UI/workspace integration passed with mocked provider responses, real browser/storage/OCR, no page errors and responsive layout checks.
+
+## 20 October 2026 — v3.0.32: full captured timeline and grounded speaker attribution
+
+- Clarified that report references are grouped supporting excerpts, not a ten-moment capture cap. Added All captured moments in Lab: every stored speech segment and frame in chronological order, searchable, timestamp-linked and downloadable. Original source wording is preserved. This does not manufacture missing video/audio or claim every semantic detail has been analyzed.
+- Added per-finding Who said it. Names are retained only when the exact supporting speech quote begins with the same explicit transcript label (Name: statement). Mentions, titles, guest lists and voices cannot establish attribution. Otherwise the report states that the speaker is not identified; no diarization or name-from-face/voice claim is made.
+- Verified 102 tests and build, including 250 speech segments plus a frame without a ten-item limit, and rejection of names mentioned in an excerpt without an attributable speaker label. Browser timeline search verification recorded after completion.
+- Chrome UI integration passed, including opening the full timeline and filtering/restoring moments; provider outputs mocked, browser/storage/OCR real.

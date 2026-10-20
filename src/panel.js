@@ -1,3 +1,4 @@
+import { sourceTimeline } from "./source-timeline.js";
 import { contextMessage } from "./extension-context.js";
 import { createShortsFollower } from "./shorts-follow.js";
 if (new URLSearchParams(location.search).has("embedded"))
@@ -362,6 +363,10 @@ function render() {
   } else if (active === "graph") {
     html += `<button class="primary" id="extract-graph" ${!s || requestBusy ? "disabled" : ""}>Connect this video’s concepts<span>↗</span></button><div class="toolbar"><button class="secondary" id="export-graph">Export graph JSON</button></div><label class="sr-only" for="graph-search">Search concepts</label><input id="graph-search" placeholder="Find a concept…" type="search"> <div id="graph-area"></div><p class="muted">Saved graph evidence persists. Connections describe what videos say, and are not independently verified facts.</p>`;
   } else if (active === "lab") {
+    const moments = sourceTimeline(s, frames);
+    if (moments.length)
+      html += `<details id="full-source-timeline"><summary>All captured moments · ${moments.length}</summary><p class="muted">Every saved speech segment and frame, in order. Original source wording is kept for checking. This may not cover the entire video.</p><label for="moment-search">Find a word or phrase</label><input id="moment-search" type="search" placeholder="Search all captured moments"><button class="secondary" id="download-moments">Download all moments</button><div id="moment-list"></div></details>`;
+
     html += `<button class="primary" data-generate="talkshow" ${!s || requestBusy ? "disabled" : ""}>Analyze video / Short<span>↗</span></button><p class="muted">Review captured speech for key points, claims, events, instructions, opinions, relevant language and any law references. Every captured transcript section is processed; results are saved in history. Descriptive analysis, with unverified interpretations and legal claims.</p>`;
     const discussion = s?.outputs?.filter((o) => o.mode === "talkshow").at(-1);
     if (discussion) {
@@ -547,7 +552,7 @@ const badgeLabels = {
 };
 function outputHTML(o) {
   const v = o.verification || { status: "unchecked", claims: [] };
-  return `<article class="result" data-output="${esc(o.id)}"><div class="result-head"><span class="eyebrow">${o.mode === "talkshow" ? "VIDEO ANALYSIS" : o.mode === "speaking" ? "YOUR SPEAKING NOTES" : o.mode === "notes" ? "YOUR STUDY NOTES" : o.mode === "actions" ? "YOUR ACTION PLAN" : o.generalKnowledge ? "VIDEO + GENERAL KNOWLEDGE" : "FROM YOUR SOURCES"}</span><span class="badge ${esc(v.status)}">${o.processing ? "Checking support�" : o.generalKnowledge ? "Includes general knowledge" : badgeLabels[v.status] || "Unchecked"}</span></div><h3 class="result-source-title">${esc(o.mode === "research" ? "Multi-video research" : o.evidence[0]?.title || "Source notes")}</h3><div class="markdown" dir="auto">${markdown(o.answer, o.evidence)}</div><div class="sources"><div class="eyebrow">BACK TO THE SOURCE · ${o.evidence.length} MOMENTS</div>${o.evidence
+  return `<article class="result" data-output="${esc(o.id)}"><div class="result-head"><span class="eyebrow">${o.mode === "talkshow" ? "VIDEO ANALYSIS" : o.mode === "speaking" ? "YOUR SPEAKING NOTES" : o.mode === "notes" ? "YOUR STUDY NOTES" : o.mode === "actions" ? "YOUR ACTION PLAN" : o.generalKnowledge ? "VIDEO + GENERAL KNOWLEDGE" : "FROM YOUR SOURCES"}</span><span class="badge ${esc(v.status)}">${o.processing ? "Checking support�" : o.generalKnowledge ? "Includes general knowledge" : badgeLabels[v.status] || "Unchecked"}</span></div><h3 class="result-source-title">${esc(o.mode === "research" ? "Multi-video research" : o.evidence[0]?.title || "Source notes")}</h3><div class="markdown" dir="auto">${markdown(o.answer, o.evidence)}</div><div class="sources"><div class="eyebrow">SUPPORTING EXCERPTS · ${o.evidence.length}</div>${o.evidence
     .map(
       (e, i) =>
         `<div class="source-proof"><button class="source-link" data-seek="${e.startTime}" data-video="${esc(e.videoId)}"><span>E${i + 1} · ${esc(e.title)}<small>${esc(e.kind)} ${session()?.captionStatus === "manual" ? "· manually supplied" : ""}</small></span><span class="stamp">${time(e.startTime)} ↗</span></button><a class="print-source-link" href="https://www.youtube.com/watch?v=${encodeURIComponent(e.videoId)}&t=${Math.floor(e.startTime)}s">https://www.youtube.com/watch?v=${esc(e.videoId)}&amp;t=${Math.floor(e.startTime)}s</a><details><summary>Proof view · read stored excerpt</summary><pre>${esc(e.text)}</pre></details></div>`,
@@ -779,7 +784,46 @@ async function openSettings() {
   $("#auto-code").checked = s.autoCode;
   $("#settings-dialog").showModal();
 }
+function renderMoments(query = "") {
+  const container = $("#moment-list");
+  if (!container) return;
+  const all = sourceTimeline(session(), frames);
+  const matching = all.filter((m) =>
+    m.text.toLocaleLowerCase().includes(query.toLocaleLowerCase()),
+  );
+  container.innerHTML =
+    `<p class="muted">${matching.length} of ${all.length} captured moments</p>` +
+    matching
+      .map(
+        (m) =>
+          `<div class="source-proof"><button class="source-link" data-seek="${m.time}" data-video="${esc(m.videoId)}">${time(m.time)} ↗ · ${m.kind}</button><p dir="auto">${esc(m.text)}</p></div>`,
+      )
+      .join("");
+}
+document.addEventListener(
+  "toggle",
+  (e) => {
+    if (e.target.id === "full-source-timeline" && e.target.open)
+      renderMoments($("#moment-search")?.value || "");
+  },
+  true,
+);
+document.addEventListener("input", (e) => {
+  if (e.target.id === "moment-search") renderMoments(e.target.value);
+});
 document.addEventListener("click", async (e) => {
+  if (e.target.closest("#download-moments")) {
+    const all = sourceTimeline(session(), frames);
+    download(
+      "# Captured video timeline\n\nOriginal source wording; may not cover the entire video.\n\n" +
+        all
+          .map((m) => `## ${time(m.time)} · ${m.kind}\n\n${m.text}`)
+          .join("\n\n"),
+      "ytmind-all-moments.md",
+    );
+    return;
+  }
+
   const b = e.target.closest("button,[data-node]");
   if (!b) return;
   try {
