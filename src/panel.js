@@ -1,3 +1,7 @@
+import { installBrowserAgent } from "./browser-agent-ui.js";
+import { pageDetailsMarkdown, pageDetailsExport } from "./page-details.js";
+import { readingURL } from "./web-history.js";
+import { sourceURL, isYouTubeSite } from "./page-source.js";
 import { searchLibrary } from "./library-search.js";
 import { hasVisualSource } from "./visual-source.js";
 import { sourceTimeline } from "./source-timeline.js";
@@ -30,6 +34,8 @@ let speechEpoch = 0;
 window.addEventListener("pagehide", () => window.speechSynthesis?.cancel());
 let state = { sessions: [], nodes: [], edges: [], settings: defaults },
   videoId = null,
+  workspaceMode = "video",
+  currentPageTitle = "",
   tabId = null,
   frames = [],
   active = location.hash.slice(1) || "notes",
@@ -82,7 +88,21 @@ function notice(text, error = false) {
   $("#notice").className = error ? "error" : "";
   $("#notice").hidden = !text;
 }
-const session = () => state.sessions.find((s) => s.id === videoId);
+const session = () => {
+  if (workspaceMode !== "reading")
+    return state.sessions.find((s) => s.id === videoId);
+  const page = (state.pages || []).find((p) => p.id === videoId);
+  return page
+    ? {
+        ...page,
+        transcript: [{ text: page.text, startTime: 0 }],
+        captionStatus: "page",
+        captionSource: "page text",
+        saved: true,
+        outputs: page.outputs || [],
+      }
+    : null;
+};
 const questionDrafts = new Map();
 let libraryQuery = "";
 let pageQuery = "";
@@ -131,14 +151,19 @@ async function refresh(force = false) {
         active: true,
         currentWindow: true,
       });
-      if (t?.id && t.url && !youtubeVideoId(t.url)) {
-        if (tabId !== t.id) active = "library";
-        videoId = null;
+      if (t?.id && t.url && !isYouTubeSite(t.url)) {
+        if (workspaceMode !== "reading") active = "notes";
+        workspaceMode = "reading";
+        const pageURL = readingURL(t.url);
+        videoId = pageURL ? `page:${pageURL}` : null;
+        currentPageTitle = t.title || "Current page";
         tabId = t.id;
         capture = false;
         followRequested = false;
         activeIsShort = false;
       } else if (t?.id) {
+        if (workspaceMode !== "video") active = "notes";
+        workspaceMode = "video";
         try {
           const info = await api("CONNECT_VIDEO", { tabId: t.id });
           if (info?.navigating) return;
@@ -184,7 +209,10 @@ async function refresh(force = false) {
     }
     const s = session();
     $("#video-title").textContent =
-      s?.title || "Your reading and video library";
+      s?.title ||
+      (workspaceMode === "reading"
+        ? currentPageTitle || "Your reading workspace"
+        : "Open a YouTube video");
     $("#source-status").textContent = s
       ? s.transcript.length
         ? `${s.transcript.length} ${s.captionSource?.includes("audio") ? "speech recognition" : s.captionStatus === "manual" ? "imported text" : "caption"} segments · ${s.ingestCoverage?.status === "partial" ? "partial audio source" : "source ready"}`
@@ -202,6 +230,10 @@ async function refresh(force = false) {
                 ? "Loading YouTube captions · audio fallback is checked separately"
                 : "No captions yet · add audio or frames"
       : "Your next rabbit hole starts here";
+    if (workspaceMode === "reading")
+      $("#source-status").textContent = s
+        ? "Saved page text · ready to explore"
+        : "Open a readable page · text saves automatically";
     $("#retention").textContent = s
       ? "Saved in history"
       : "History saves automatically";
@@ -211,7 +243,8 @@ async function refresh(force = false) {
       "aria-label",
       s?.pinned ? "Deselect video for research" : "Select video for research",
     );
-    frames = s ? await api("FRAMES", { videoId }) : [];
+    frames =
+      s && workspaceMode === "video" ? await api("FRAMES", { videoId }) : [];
     if (s && !s.transcript.length && hasVisualSource(frames))
       $("#source-status").textContent =
         "Screen text ready · captions and audio are optional";
@@ -219,6 +252,7 @@ async function refresh(force = false) {
       notice("");
     const next = JSON.stringify([
       active,
+      workspaceMode,
       videoId,
       s?.captionStatus,
       s?.outputs?.map((o) => o.id),
@@ -255,6 +289,11 @@ async function refresh(force = false) {
   }
 }
 const headings = {
+  home: [
+    "Your reading, together.",
+    "OVERVIEW",
+    "Return to a page, explore an idea, or find something you saved.",
+  ],
   notes: [
     "A little clarity, saved.",
     "STUDY NOTES",
@@ -294,6 +333,7 @@ const headings = {
 function empty(icon, title, description) {
   return `<div class="empty"><span class="empty-icon">${icon}</span><h3>${title}</h3><p>${description}</p></div>`;
 }
+const readingSource = () => workspaceMode === "reading";
 function render() {
   const oldAskForm = $("#ask-form");
   if (oldAskForm)
@@ -305,17 +345,83 @@ function render() {
     b.classList.toggle("active", b.dataset.tab === active);
     b.setAttribute("aria-current", b.dataset.tab === active ? "page" : "false");
   }
-  const [title, label, description] = headings[active] || headings.notes;
+  document.body.dataset.context = workspaceMode;
+  const reading = workspaceMode === "reading";
+  for (const tab of document.querySelectorAll("[data-tab]")) {
+    tab.hidden = reading
+      ? ["vera", "lab"].includes(tab.dataset.tab)
+      : tab.dataset.tab === "home";
+    if (tab.dataset.tab === "notes")
+      tab.textContent = reading ? "Summary" : "Notes";
+  }
+  $("#pin").hidden = reading;
+  document.querySelector(".intro h1").innerHTML = reading
+    ? "Read. Remember.<br><span>Make it yours.</span>"
+    : "Watch. Understand.<br><span>Make it yours.</span>";
+  document.querySelector(".intro > p").textContent = reading
+    ? "Your reading, ideas and discoveries. All in one place."
+    : "Good ideas deserve more than another open tab.";
+  $("#context-label").textContent = reading
+    ? "YOUR READING WORKSPACE"
+    : "YOUR LEARNING WORKSPACE";
+  $("#current-source-label").textContent = reading
+    ? "CURRENT PAGE"
+    : "NOW LEARNING";
+  document.querySelector(".video-symbol").textContent = reading ? "▤" : "▶";
+  const badge = $("#history-status-toggle");
+  badge.textContent =
+    state.readingEnabled === false ? "History paused" : "History on";
+  badge.dataset.paused = String(state.readingEnabled === false);
+  badge.setAttribute(
+    "aria-label",
+    state.readingEnabled === false
+      ? "Resume reading history"
+      : "Pause reading history",
+  );
+  let [title, label, description] = headings[active] || headings.notes;
+  if (reading && active === "library")
+    [title, label, description] = [
+      "Your browsing memory.",
+      "PAGES & HISTORY",
+      "Revisit captured pages, recent visits and your open tabs.",
+    ];
+  if (reading && active === "notes")
+    [title, label, description] = [
+      "A clearer view of this page.",
+      "PAGE SUMMARY",
+      "Understand the main ideas, then turn them into something useful.",
+    ];
+  if (reading && active === "chat")
+    description =
+      "Ask about the saved page. Every supported answer points back to its source.";
+  if (reading && active === "actions")
+    description =
+      "Find instructions, steps and practical takeaways stated on this page.";
   let html = `<div class="section-heading"><h2>${title}</h2><span class="tag">${label}</span></div><p class="description">${description}</p>`;
   const s = session();
-  if (["notes", "actions"].includes(active)) {
-    html += `<button class="primary" data-generate="${active}" ${!s || requestBusy ? "disabled" : ""}>${active === "notes" ? "Generate study notes" : "Extract action steps"}<span>↗</span></button>`;
+  if (active === "home") {
+    const pages = [...(state.pages || [])].sort(
+      (a, b) => b.lastSeenAt - a.lastSeenAt,
+    );
+    const outputs = pages.reduce((n, p) => n + (p.outputs?.length || 0), 0);
+    html += `<div class="workspace-stats"><div><strong>${pages.length}</strong><span>saved pages</span></div><div><strong>${state.sessions.length}</strong><span>saved videos</span></div><div><strong>${outputs}</strong><span>page insights</span></div></div><div class="quick-grid"><button class="quick-card" data-go="notes"><span>✦</span><strong>Understand this page</strong><small>Clear summaries and key ideas</small></button><button class="quick-card" data-go="chat"><span>↗</span><strong>Ask a question</strong><small>Explore what you’re reading</small></button><button class="quick-card" data-go="library"><span>▤</span><strong>Find a saved page</strong><small>Your reading, ready to return to</small></button><button class="quick-card" data-study="flashcards" ${!s || requestBusy ? "disabled" : ""}><span>◇</span><strong>Review what matters</strong><small>Turn this page into flashcards</small></button></div><h3 class="recent-heading">Recently read</h3>${
+      pages
+        .slice(0, 5)
+        .map(
+          (p) =>
+            `<a class="recent-page" href="${esc(p.url)}" target="_blank" rel="noreferrer"><span>▤</span><div><strong>${esc(p.title)}</strong><small>${esc(new URL(p.url).hostname)}</small></div><span>↗</span></a>`,
+        )
+        .join("") ||
+      '<p class="muted">The pages you read will appear here automatically.</p>'
+    }`;
+  } else if (["notes", "actions"].includes(active)) {
+    html += `<button class="primary" data-generate="${active}" ${!s || requestBusy ? "disabled" : ""}>${active === "notes" ? (reading ? "Summarize this page" : "Generate study notes") : "Extract action steps"}<span>↗</span></button>`;
     if (active === "notes")
       html += `<button class="secondary" data-generate="speaking" ${!s || requestBusy ? "disabled" : ""}>Generate speaking notes</button>`;
     if (active === "notes")
-      html += `<div class="toolbar"><button class="secondary" data-generate="quiz" ${!s || requestBusy ? "disabled" : ""}>Quiz me</button><button class="secondary" data-generate="flashcards" ${!s || requestBusy ? "disabled" : ""}>Create flashcards</button></div><p class="muted">Practice what you learned. Reveal each answer when you’re ready, then check its video reference.</p>`;
+      html += `<div class="study-tools"><div class="study-tools-heading"><span class="eyebrow">MAKE IT STICK</span><p>Practice, revise, remember.</p></div><div class="toolbar"><button class="secondary" data-generate="quiz" ${!s || requestBusy ? "disabled" : ""}>Quiz me</button><button class="secondary" data-generate="flashcards" ${!s || requestBusy ? "disabled" : ""}>Create flashcards</button></div><p class="muted">Practice what you learned. Reveal each answer when you’re ready, then check its source reference.</p></div>`;
     if (active === "notes" && s)
-      html += `<details class="personal-notebook"><summary>Your notebook &amp; saved moments</summary><p class="muted">Your own notes stay on this device and are kept separate from video evidence.</p><label for="personal-notes">My notes</label><textarea id="personal-notes" maxlength="20000" rows="5">${esc(notebookDrafts.get(s.id) ?? s.personalNotes ?? "")}</textarea><button class="secondary" id="save-personal-notes">Save my notes</button><label for="bookmark-label">Name this moment</label><input id="bookmark-label" maxlength="300" placeholder="e.g. The useful explanation"><button class="secondary" id="save-bookmark">Save this moment · ${time(videoPosition)}</button>${(s.bookmarks || []).map((b) => `<div class="source-proof"><button class="source-link" data-seek="${b.timestamp}" data-video="${esc(s.id)}">${time(b.timestamp)} ↗ · ${esc(b.label)}</button><button class="text-button" data-delete-bookmark="${esc(b.id)}">Remove saved moment</button></div>`).join("")}</details>`;
+      html += `<details class="personal-notebook"><summary>${reading ? "Your page notebook" : "Your notebook &amp; saved moments"}</summary><p class="muted">Your own notes stay on this device and are kept separate from source evidence.</p><label for="personal-notes">My notes</label><textarea id="personal-notes" maxlength="20000" rows="5">${esc(notebookDrafts.get(s.id) ?? s.personalNotes ?? "")}</textarea><button class="secondary" id="save-personal-notes">Save my notes</button><div class="bookmark-controls"><label for="bookmark-label">Name this moment</label><input id="bookmark-label" maxlength="300" placeholder="e.g. The useful explanation"><button class="secondary" id="save-bookmark">Save this moment · ${time(videoPosition)}</button>${(s.bookmarks || []).map((b) => `<div class="source-proof"><button class="source-link" data-seek="${b.timestamp}" data-video="${esc(s.id)}">${time(b.timestamp)} ↗ · ${esc(b.label)}</button><button class="text-button" data-delete-bookmark="${esc(b.id)}">Remove saved moment</button></div>`).join("")}</div></details>`;
     if (requestBusy)
       html +=
         '<button class="text-button" id="pause-generation">Pause after this section</button>';
@@ -347,10 +453,12 @@ function render() {
             ? "Generate notes from your video’s captions and indexed frames. Every key point links back to its source."
             : "Find concrete steps in your video. Missing details stay missing, so you can check the original.",
         );
-    html += `<div class="hint-card"><span>◇</span><div><b>A small habit, a lasting library.</b><br>Every video and its outputs are saved automatically. Use the diamond to select videos for research.</div></div>`;
+    html += `<div class="hint-card"><span>◇</span><div><b>A small habit, a lasting library.</b><br>${reading ? "This page and its study tools stay in your Library." : "Every video and its outputs are saved automatically. Use the diamond to select videos for research."}</div></div>`;
     html += sourceTools();
   } else if (active === "chat") {
-    html += `<div class="prompt-chips"><button data-prompt="Explain the main idea">The main idea</button><button data-prompt="What prerequisites are mentioned?">Prerequisites</button><button data-prompt="Explain the code shown in the video">Explain the code</button></div><form id="ask-form"><label for="question">Your question</label><textarea id="question" maxlength="2000" placeholder="What would you like to understand?" required></textarea><button id="send-question" class="primary" type="submit" ${!s || requestBusy ? "disabled" : ""}>${requestBusy ? "Processing…" : "Send question"}<span aria-hidden="true">↗</span></button><small class="ask-help">Ctrl+Enter to send · Enter for a new line</small></form>`;
+    if (reading)
+      html += `<section class="batch-card"><h3>Need a hand?</h3><p>Describe your goal or the step that is not working. Get a clear next step using this page and your captured activity.</p><button class="secondary" data-prompt="Help me complete my task on this page. First explain what this page lets me do and what my recent captured steps show. Ask what I want to achieve if unclear. Give numbered next steps supported by visible page controls, distinguish suggestions from observed facts, and do not claim you clicked or submitted anything.">Help me with this page</button></section>`;
+    html += `<div class="prompt-chips"><button data-prompt="Explain the main idea">The main idea</button><button data-prompt="What prerequisites are mentioned?">Prerequisites</button><button data-prompt="${reading ? "Explain any code shown on this page" : "Explain the code shown in the video"}">Explain the code</button></div><form id="ask-form"><label for="question">Your question</label><textarea id="question" maxlength="2000" placeholder="What would you like to understand?" required></textarea><button id="send-question" class="primary" type="submit" ${!s || requestBusy ? "disabled" : ""}>${requestBusy ? "Processing…" : "Send question"}<span aria-hidden="true">↗</span></button><small class="ask-help">Ctrl+Enter to send · Enter for a new line</small></form>`;
     const outputs = s?.outputs?.filter((o) => o.mode === "chat") || [];
     html += outputs.length
       ? outputs
@@ -364,7 +472,9 @@ function render() {
       : empty(
           "✳",
           "A good question changes things.",
-          "Your answers will appear here, alongside the video moments that support them.",
+          reading
+            ? "Your answers will appear here with references to the saved page."
+            : "Your answers will appear here, alongside the video moments that support them.",
         );
     html += sourceTools();
   } else if (active === "vera") {
@@ -394,7 +504,7 @@ function render() {
           "Play a video and start indexing, or capture a slide manually. Clear frames with readable text work best.",
         );
   } else if (active === "graph") {
-    html += `<button class="primary" id="extract-graph" ${!s || requestBusy ? "disabled" : ""}>Connect this video’s concepts<span>↗</span></button><div class="toolbar"><button class="secondary" id="export-graph">Export graph JSON</button></div><label class="sr-only" for="graph-search">Search concepts</label><input id="graph-search" placeholder="Find a concept…" type="search"> <div id="graph-area"></div><p class="muted">Saved graph evidence persists. Connections describe what videos say, and are not independently verified facts.</p>`;
+    html += `<button class="primary" id="extract-graph" ${!s || requestBusy ? "disabled" : ""}>Connect this ${reading ? "page’s" : "video’s"} concepts<span>↗</span></button><div class="toolbar"><button class="secondary" id="export-graph">Export graph JSON</button></div><label class="sr-only" for="graph-search">Search concepts</label><input id="graph-search" placeholder="Find a concept…" type="search"> <div id="graph-area"></div><p class="muted">Saved graph evidence persists. Connections describe the captured sources, and are not independently verified facts.</p>`;
   } else if (active === "lab") {
     const moments = sourceTimeline(s, frames);
     if (moments.length)
@@ -435,16 +545,21 @@ function render() {
       (a, b) => (b.lastSeenAt || b.createdAt) - (a.lastSeenAt || a.createdAt),
     );
     html += `<section class="batch-card"><h3>Study selected videos</h3><p class="muted">Turn up to 10 selected videos into organized notes. Your progress is saved as you go. Leave YTMind open until your notes are ready.</p><div class="source-controls"><button id="batch-start" class="primary" ${!pinned.length || requestBusy ? "disabled" : ""}>Generate all lecture notes</button>${state.batch && state.batch.status !== "complete" ? `<button id="batch-resume" class="secondary" ${requestBusy ? "disabled" : ""}>Continue saved batch</button><button id="batch-discard" class="text-button" ${requestBusy ? "disabled" : ""}>Discard batch progress</button>` : ""}${batchRunning ? '<button id="batch-pause" class="secondary">Pause after current section</button>' : ""}</div>${state.batch ? `<ul>${state.batch.entries.map((e) => `<li>${esc(e.title)} · ${e.nextBatch}/${e.totalBatches} sections · ${esc(e.status)}${e.error ? ` · ${esc(e.error)}` : ""}</li>`).join("")}</ul><div class="toolbar"><button id="batch-export" class="secondary">Download lecture notes ZIP</button><button id="batch-pdf" class="secondary">Save lecture notes as PDF</button></div>` : ""}</section>`;
-    html += `<section class="batch-card"><h3>Reading history</h3><p class="muted">${state.readingEnabled !== false ? "On · readable pages are saved automatically on this device." : "Paused · new pages are not being saved."} Private browsing, forms and excluded sensitive pages are not recorded. Some websites and built-in PDF viewers cannot be read.</p><button class="secondary" id="reading-toggle">${state.readingEnabled !== false ? "Pause reading history" : "Resume reading history"}</button><button class="secondary" id="export-reading">Download reading history</button></section><label for="page-search">Search saved pages</label><input type="search" id="page-search" value="${esc(pageQuery)}" placeholder="Find a page or passage"><p id="page-search-count" class="muted"></p><div id="reading-pages">${
+    const readingSectionStart = html.length;
+    html += `<section class="batch-card"><h3>Reading history</h3><p>Keep a 24-hour browsing memory. Sign-in cookies and saved passwords stay in Chrome.</p><button class="secondary" id="connect-chrome-history">Enable Chrome history � keep 24 hours</button><button class="secondary" id="show-chrome-history">Open tabs &amp; recent history</button><button class="secondary" id="export-chrome-history">Export Chrome history</button><div id="chrome-memory" aria-live="polite"></div><p class="muted">${state.readingEnabled !== false ? "On · readable pages are saved automatically on this device." : "Paused · new pages are not being saved."} Private browsing, forms and excluded sensitive pages are not recorded. Some websites and built-in PDF viewers cannot be read.</p><button class="secondary" id="reading-toggle">${state.readingEnabled !== false ? "Pause reading history" : "Resume reading history"}</button><button class="secondary" id="export-reading">Download reading history</button></section><label for="page-search">Search saved pages</label><input type="search" id="page-search" value="${esc(pageQuery)}" placeholder="Find a page or passage"><p id="page-search-count" class="muted"></p><div id="reading-pages">${
       [...(state.pages || [])]
         .sort((a, b) => b.lastSeenAt - a.lastSeenAt)
         .map(
           (p) =>
-            `<article class="library-card" data-page-id="${esc(p.id)}"><div><h3><a href="${esc(p.url)}" target="_blank" rel="noreferrer">${esc(p.title)} ↗</a></h3><small>${p.visits} visit${p.visits === 1 ? "" : "s"} · ${new Date(p.lastSeenAt).toLocaleDateString()} · ${p.progress}% furthest scroll</small><details data-reading-page="${esc(p.id)}"><summary>Read saved page</summary><pre class="reading-page-body" dir="auto"></pre></details><button class="text-button" data-delete-page="${esc(p.id)}">Delete saved page</button></div></article>`,
+            `<article class="library-card" data-page-id="${esc(p.id)}"><div><h3><a href="${esc(p.url)}" target="_blank" rel="noreferrer">${esc(p.title)} ↗</a></h3><small>${p.visits} visit${p.visits === 1 ? "" : "s"} · ${new Date(p.lastSeenAt).toLocaleDateString()} · ${p.progress}% furthest scroll</small>${p.outputs?.length ? `<details data-history-id="${esc(p.id)}"><summary>Saved summaries &amp; study tools (${p.outputs.length})</summary><div class="history-outputs"></div></details>` : ""}<details data-reading-page="${esc(p.id)}"><summary>Read saved page</summary><pre class="reading-page-body" dir="auto"></pre></details><button class="secondary" data-export-page="${esc(p.id)}">Export report</button><button class="secondary" data-export-page-json="${esc(p.id)}">Export JSON</button><button class="text-button" data-delete-page="${esc(p.id)}">Delete saved page</button></div></article>`,
         )
         .join("") ||
       '<p class="muted">Pages you read will appear here while history is on.</p>'
     }</div>`;
+    if (!reading)
+      html =
+        html.slice(0, readingSectionStart) +
+        `<details class="batch-card"><summary>Extra tools - webpage and Chrome history</summary>${html.slice(readingSectionStart)}</details>`;
     html += `<h3>Video history · ${history.length}</h3><label for="library-search">Search your library</label><input id="library-search" type="search" value="${esc(libraryQuery)}" placeholder="Find a topic, phrase or command"><p id="library-search-count" class="muted" aria-live="polite"></p>`;
     html += history.length
       ? history
@@ -546,6 +661,8 @@ function frameOCRText(frame) {
   );
 }
 function sourceTools() {
+  if (readingSource())
+    return `<p class="page-privacy-note">Page text stays on this device until you request AI help. Only captured text is used; hidden or unavailable content may be missing.</p>`;
   return `<details><summary>Missing captions? Add your own source</summary><p class="muted">${studioMode ? "Import source text or transcribe audio." : "Open YouTube’s transcript panel and retry, or import your source."} Timestamped text, SRT, VTT and JSON preserve video citations. Plain text starts at 0:00.</p>${studioMode ? "" : '<button class="secondary" id="retry-captions">Retry captions</button>'}<div class="source-controls"><label class="secondary file-control">Import subtitles<input id="subtitle-file" type="file" accept=".txt,.srt,.vtt,.json" /></label><label class="secondary file-control">Upload audio<input id="audio-file" type="file" accept=".wav,.mp3,.mp4,.m4a,.mpeg,.mpga,.ogg,.flac,.webm" /></label><button class="secondary" id="record-tab-audio">Record tab audio</button></div><form id="import-form"><label class="sr-only" for="manual-source">Transcript text</label><textarea id="manual-source" maxlength="150000" placeholder="Paste the video transcript…" required></textarea><button class="text-button">Use this transcript</button></form></details>`;
 }
 function coverageHTML(o) {
@@ -578,6 +695,16 @@ function markdown(text, evidence = []) {
       const match = p.match(/^\[E(\d+)\]$/),
         source = match && evidence[Number(match[1]) - 1];
       if (source) {
+        if (source.kind === "page") {
+          const a = document.createElement("a");
+          a.className = "citation";
+          a.textContent = `Page · E${Number(match[1])}`;
+          a.href = sourceURL(source);
+          a.target = "_blank";
+          a.rel = "noreferrer noopener";
+          frag.append(a);
+          continue;
+        }
         const b = document.createElement("button");
         b.className = "citation";
         b.textContent = `${time(source.startTime)} ↗`;
@@ -599,10 +726,11 @@ const badgeLabels = {
 };
 function outputHTML(o) {
   const v = o.verification || { status: "unchecked", claims: [] };
-  return `<article class="result" data-output="${esc(o.id)}"><div class="result-head"><span class="eyebrow">${o.mode === "quiz" ? "YOUR PRACTICE QUIZ" : o.mode === "flashcards" ? "YOUR FLASHCARDS" : o.mode === "talkshow" ? "VIDEO ANALYSIS" : o.mode === "speaking" ? "YOUR SPEAKING NOTES" : o.mode === "notes" ? "YOUR STUDY NOTES" : o.mode === "actions" ? "YOUR ACTION PLAN" : o.generalKnowledge ? "VIDEO + GENERAL KNOWLEDGE" : "FROM YOUR SOURCES"}</span><span class="badge ${esc(v.status)}">${o.processing ? "Checking support�" : o.generalKnowledge ? "Includes general knowledge" : badgeLabels[v.status] || "Unchecked"}</span></div><h3 class="result-source-title">${esc(o.mode === "research" ? "Multi-video research" : o.evidence[0]?.title || "Source notes")}</h3><div class="markdown" dir="auto">${markdown(o.answer, o.evidence)}</div><div class="sources"><div class="eyebrow">SUPPORTING EXCERPTS · ${o.evidence.length}</div>${o.evidence
-    .map(
-      (e, i) =>
-        `<div class="source-proof"><button class="source-link" data-seek="${e.startTime}" data-video="${esc(e.videoId)}"><span>E${i + 1} · ${esc(e.title)}<small>${esc(e.kind)} ${session()?.captionStatus === "manual" ? "· manually supplied" : ""}</small></span><span class="stamp">${time(e.startTime)} ↗</span></button><a class="print-source-link" href="https://www.youtube.com/watch?v=${encodeURIComponent(e.videoId)}&t=${Math.floor(e.startTime)}s">https://www.youtube.com/watch?v=${esc(e.videoId)}&amp;t=${Math.floor(e.startTime)}s</a><details><summary>Proof view · read stored excerpt</summary><pre>${esc(e.text)}</pre></details></div>`,
+  return `<article class="result" data-output="${esc(o.id)}"><div class="result-head"><span class="eyebrow">${o.mode === "quiz" ? "YOUR PRACTICE QUIZ" : o.mode === "flashcards" ? "YOUR FLASHCARDS" : o.mode === "talkshow" ? "VIDEO ANALYSIS" : o.mode === "speaking" ? "YOUR SPEAKING NOTES" : o.mode === "notes" ? "YOUR STUDY NOTES" : o.mode === "actions" ? "YOUR ACTION PLAN" : o.generalKnowledge ? "SOURCE + GENERAL KNOWLEDGE" : "FROM YOUR SOURCES"}</span><span class="badge ${esc(v.status)}">${o.processing ? "Checking support�" : o.generalKnowledge ? "Includes general knowledge" : badgeLabels[v.status] || "Unchecked"}</span></div><h3 class="result-source-title">${esc(o.mode === "research" ? "Multi-video research" : o.evidence[0]?.title || "Source notes")}</h3><div class="markdown" dir="auto">${markdown(o.answer, o.evidence)}</div><div class="sources"><div class="eyebrow">SUPPORTING EXCERPTS · ${o.evidence.length}</div>${o.evidence
+    .map((e, i) =>
+      e.kind === "page"
+        ? `<div class="source-proof"><a class="source-link" href="${esc(sourceURL(e))}" target="_blank" rel="noreferrer"><span>E${i + 1} · ${esc(e.title)}<small>Saved page excerpt</small></span><span>Open page ↗</span></a><details><summary>Read saved excerpt</summary><pre>${esc(e.text)}</pre></details></div>`
+        : `<div class="source-proof"><button class="source-link" data-seek="${e.startTime}" data-video="${esc(e.videoId)}"><span>E${i + 1} · ${esc(e.title)}<small>${esc(e.kind)} ${session()?.captionStatus === "manual" ? "· manually supplied" : ""}</small></span><span class="stamp">${time(e.startTime)} ↗</span></button><a class="print-source-link" href="https://www.youtube.com/watch?v=${encodeURIComponent(e.videoId)}&t=${Math.floor(e.startTime)}s">https://www.youtube.com/watch?v=${esc(e.videoId)}&amp;t=${Math.floor(e.startTime)}s</a><details><summary>Proof view · read stored excerpt</summary><pre>${esc(e.text)}</pre></details></div>`,
     )
     .join(
       "",
@@ -656,13 +784,27 @@ function showNode(id) {
     (e) => e.source === id || e.target === id,
   );
   $("#node-detail").innerHTML =
-    `<div class="concept"><h3>${esc(n.label)}</h3><span class="tag">${esc(n.type)}</span>${relations.map((e) => `<p class="muted">${esc(e.source)} → ${esc(e.relation)} → ${esc(e.target)}</p>`).join("")}${n.sources.map((s) => `<button class="source-link" data-seek="${s.startTime}" data-video="${s.videoId}">${esc(s.title)}<span class="stamp">${time(s.startTime)} ↗</span></button>`).join("")}</div>`;
+    `<div class="concept"><h3>${esc(n.label)}</h3><span class="tag">${esc(n.type)}</span>${relations.map((e) => `<p class="muted">${esc(e.source)} → ${esc(e.relation)} → ${esc(e.target)}</p>`).join("")}${n.sources.map((s) => (s.kind === "page" ? `<a class="source-link" href="${esc(sourceURL(s))}" target="_blank" rel="noreferrer">${esc(s.title)}<span>Open page ↗</span></a>` : `<button class="source-link" data-seek="${s.startTime}" data-video="${s.videoId}">${esc(s.title)}<span class="stamp">${time(s.startTime)} ↗</span></button>`)).join("")}</div>`;
 }
 async function run(mode, query = "", resumeJob = null, sourceReady = false) {
   if (requestBusy) return;
   if (!studioMode && !preview && !sourceReady) await refresh(true);
+  if (readingSource() && tabId && !studioMode && !preview) {
+    try {
+      await api("REFRESH_PAGE", { tabId });
+      await refresh(true);
+    } catch (e) {
+      notice(e.message, true);
+      return;
+    }
+  }
   if (!session()) {
-    notice("Open a YouTube video before generating an answer.", true);
+    notice(
+      readingSource()
+        ? "This page has no saved readable text yet. Private or unsupported pages cannot be analyzed."
+        : "Open a YouTube video before generating an answer.",
+      true,
+    );
     return;
   }
   // Try a readable screen before fetching audio. Silent slides/code do not
@@ -748,7 +890,8 @@ async function run(mode, query = "", resumeJob = null, sourceReady = false) {
       jobId = resumeJob;
     let result;
     do {
-      result = await api("GENERATE", {
+      result = await api(readingSource() ? "PAGE_GENERATE" : "GENERATE", {
+        pageId: originVideo,
         videoId: originVideo,
         mode,
         query,
@@ -831,12 +974,14 @@ async function processFrames() {
 }
 function findOutput(id) {
   if (researchResult?.id === id) return researchResult;
-  const all = state.sessions.flatMap((s) => s.outputs || []),
+  const all = [...state.sessions, ...(state.pages || [])].flatMap(
+      (s) => s.outputs || [],
+    ),
     parts = all.filter((o) => o.jobId === id);
   return parts.length ? combineParts(parts) : all.find((o) => o.id === id);
 }
 function exportText(o) {
-  return `# ${o.mode === "research" ? "YTMind research" : o.evidence[0]?.title || session()?.title || "YTMind notes"}\n\n${o.answer}\n\n---\nSAGE: ${badgeLabels[o.verification?.status] || "Unchecked"}\nSource support is not a guarantee of truth.\n\n## Evidence\n${o.evidence.map((e, i) => `- E${i + 1}: [${e.title} · ${time(e.startTime)}](https://www.youtube.com/watch?v=${e.videoId}&t=${Math.floor(e.startTime)}s) (${e.kind})\n  ${e.text}`).join("\n")}`;
+  return `# ${o.mode === "research" ? "YTMind research" : o.evidence[0]?.title || session()?.title || "YTMind notes"}\n\n${o.answer}\n\n---\nSAGE: ${badgeLabels[o.verification?.status] || "Unchecked"}\nSource support is not a guarantee of truth.\n\n## Evidence\n${o.evidence.map((e, i) => `- E${i + 1}: [${e.title}${e.kind === "page" ? "" : " · " + time(e.startTime)}](${sourceURL(e)}) (${e.kind})\n  ${e.text}`).join("\n")}`;
 }
 function download(text, name, type = "text/markdown") {
   const url = URL.createObjectURL(new Blob([text], { type }));
@@ -867,9 +1012,10 @@ function applyPageSearch() {
   let count = 0;
   for (const card of document.querySelectorAll("[data-page-id]")) {
     const p = pages.get(card.dataset.pageId);
-    card.hidden = !`${p?.title} ${p?.url} ${p?.text}`
-      .toLocaleLowerCase()
-      .includes(query);
+    card.hidden =
+      !`${p?.title} ${p?.url} ${p?.capturedText || p?.text} ${JSON.stringify(p?.activities || [])}`
+        .toLocaleLowerCase()
+        .includes(query);
     if (!card.hidden) count++;
   }
   if ($("#page-search-count"))
@@ -885,7 +1031,14 @@ document.addEventListener(
         (p) => p.id === e.target.dataset.readingPage,
       );
       e.target.querySelector(".reading-page-body").textContent =
-        page?.text || "Saved text is unavailable.";
+        [
+          page?.capturedText || page?.text,
+          ...(page?.activities || []).map(
+            (a) => `${new Date(a.at).toLocaleString()} - ${a.kind}: ${a.label}`,
+          ),
+        ]
+          .filter(Boolean)
+          .join("\n\n") || "Saved text is unavailable.";
     }
   },
   true,
@@ -964,9 +1117,79 @@ document.addEventListener("click", async (e) => {
   const b = e.target.closest("button,[data-node]");
   if (!b) return;
   try {
-    if (b.id === "reading-toggle") {
+    if (b.id === "reading-toggle" || b.id === "history-status-toggle") {
       await api("READING_TOGGLE", { enabled: state.readingEnabled === false });
       await refresh(true);
+      return;
+    }
+    if (b.id === "connect-chrome-history") {
+      if (!globalThis.chrome?.permissions)
+        throw new Error(
+          "Open the installed extension to connect Chrome history.",
+        );
+      const granted = await chrome.permissions.request({
+        permissions: ["history"],
+      });
+      if (!granted) {
+        notice("Chrome history was not enabled.");
+        return;
+      }
+      const result = await api("CHROME_HISTORY_SYNC");
+      notice(
+        `24-hour history enabled � ${result.count} pages. Older browsing history removed; sign-ins preserved.`,
+      );
+      await refresh(true);
+      return;
+    }
+    if (b.id === "show-chrome-history") {
+      const result = await api("CHROME_HISTORY_STATUS");
+      const root = $("#chrome-memory");
+      root.replaceChildren();
+      for (const [title, items] of [
+        ["Open tabs", result.tabs || []],
+        ["Recent history - last 24 hours", result.entries || []],
+      ]) {
+        const heading = document.createElement("h4");
+        heading.textContent = `${title} (${items.length})`;
+        root.append(heading);
+        for (const item of items) {
+          const row = document.createElement("p"),
+            link = document.createElement("a");
+          try {
+            if (!/^https?:$/.test(new URL(item.url).protocol)) continue;
+          } catch {
+            continue;
+          }
+          link.href = item.url;
+          link.target = "_blank";
+          link.rel = "noreferrer";
+          link.textContent = item.title || item.url;
+          row.append(
+            link,
+            document.createTextNode(
+              item.lastVisitTime
+                ? ` - ${new Date(item.lastVisitTime).toLocaleString()}`
+                : "",
+            ),
+          );
+          root.append(row);
+        }
+      }
+      if (!result.enabled) {
+        const p = document.createElement("p");
+        p.textContent =
+          "Enable Chrome history to see previous visits. Page content is available only when captured by YTMind.";
+        root.append(p);
+      }
+      return;
+    }
+    if (b.id === "export-chrome-history") {
+      const result = await api("CHROME_HISTORY_STATUS");
+      download(
+        JSON.stringify(result, null, 2),
+        "ytmind-chrome-history.json",
+        "application/json",
+      );
       return;
     }
     if (b.id === "export-reading") {
@@ -979,6 +1202,25 @@ document.addEventListener("click", async (e) => {
         "ytmind-reading-history.json",
         "application/json",
       );
+      return;
+    }
+    if (b.dataset.exportPageJson) {
+      const page = (state.pages || []).find(
+        (p) => p.id === b.dataset.exportPageJson,
+      );
+      if (page)
+        download(
+          JSON.stringify(pageDetailsExport(page), null, 2),
+          "ytmind-page-details.json",
+          "application/json",
+        );
+      return;
+    }
+    if (b.dataset.exportPage) {
+      const page = (state.pages || []).find(
+        (p) => p.id === b.dataset.exportPage,
+      );
+      if (page) download(pageDetailsMarkdown(page), "ytmind-page-details.md");
       return;
     }
     if (b.dataset.deletePage) {
@@ -1019,6 +1261,19 @@ document.addEventListener("click", async (e) => {
       location.hash = active;
       signature = "";
       render();
+      return;
+    }
+    if (b.dataset.go) {
+      active = b.dataset.go;
+      location.hash = active;
+      render();
+      return;
+    }
+    if (b.dataset.study) {
+      active = "notes";
+      location.hash = active;
+      render();
+      await run(b.dataset.study);
       return;
     }
     if (b.dataset.generate) {
@@ -1217,7 +1472,10 @@ document.addEventListener("click", async (e) => {
         render();
         notice("Finding source-backed connections…");
         try {
-          await api("GRAPH", { videoId });
+          await api(readingSource() ? "PAGE_GRAPH" : "GRAPH", {
+            videoId,
+            pageId: videoId,
+          });
           await refresh(true);
           notice("Concepts saved to your graph.");
         } finally {
@@ -1813,7 +2071,7 @@ document.addEventListener(
     const details = event.target;
     if (!details.matches?.("details[data-history-id]")) return;
     const target = details.querySelector(".history-outputs");
-    const record = state.sessions.find(
+    const record = [...state.sessions, ...(state.pages || [])].find(
       (s) => s.id === details.dataset.historyId,
     );
     target.innerHTML = details.open
@@ -1827,3 +2085,14 @@ document.addEventListener(
   },
   true,
 );
+
+installBrowserAgent({
+  api,
+  currentURL: () => session()?.url || "",
+  refreshPage: async () => {
+    if (!readingSource() || !tabId)
+      throw new Error("Open a supported webpage first.");
+    await api("REFRESH_PAGE", { tabId });
+    await refresh(true);
+  },
+});

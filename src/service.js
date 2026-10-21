@@ -1,3 +1,5 @@
+import { isChallengePage } from "./page-details.js";
+import { pageEvidence } from "./page-source.js";
 import { readingURL } from "./web-history.js";
 import {
   defaults,
@@ -33,6 +35,11 @@ export function createService({
   const busy = new Set();
   async function dispatch(m) {
     switch (m.type) {
+      case "RETENTION_ENABLE":
+        return mutate(async () => {
+          await store.put("meta", { id: "retention-policy", hours: 24 });
+          return store.cleanup();
+        });
       case "READING_STATUS": {
         const preference = await store.read("meta", "reading-preference");
         return { enabled: preference?.enabled !== false };
@@ -57,14 +64,25 @@ export function createService({
           const text = String(m.text || "")
             .slice(0, 40000)
             .trim();
-          if (!url || text.length < 80) return { skipped: true };
+          if (
+            !url ||
+            text.length < 20 ||
+            isChallengePage(m.originalTitle || m.title, text)
+          )
+            return { skipped: true };
           const id = `page:${url}`;
           const old = await store.read("pages", id);
           const visitToken = String(m.visitToken || "").slice(0, 80);
           const value = {
+            ...old,
             id,
             url,
             title: String(m.title || url).slice(0, 300),
+            originalTitle: String(m.originalTitle || m.title || url).slice(
+              0,
+              300,
+            ),
+            siteName: String(m.siteName || new URL(url).hostname).slice(0, 150),
             text,
             firstSeenAt: old?.firstSeenAt || Date.now(),
             lastSeenAt: Date.now(),
@@ -77,7 +95,64 @@ export function createService({
               Math.max(0, Math.min(100, Number(m.progress) || 0)),
             ),
           };
+          const known = new Set(
+            (old?.capturedText || old?.text || "")
+              .split(/\n+/)
+              .map((t) => t.trim())
+              .filter(Boolean),
+          );
+          const added = text
+            .split(/\n+/)
+            .map((t) => t.trim())
+            .filter((t) => {
+              if (!t || known.has(t)) return false;
+              known.add(t);
+              return true;
+            });
+          value.capturedText = [old?.capturedText || old?.text || "", ...added]
+            .filter(Boolean)
+            .join("\n\n");
+          value.activities = [...(old?.activities || [])];
+          if (!old || old.visitToken !== visitToken)
+            value.activities.push({
+              kind: "visit",
+              label: value.title,
+              at: Date.now(),
+            });
+          if (value.progress > (old?.progress || 0) && value.progress >= 20)
+            value.activities.push({
+              kind: "reading",
+              label: `Read further · ${value.progress}% scroll position`,
+              at: Date.now(),
+            });
           await store.put("pages", value);
+          return { saved: true };
+        });
+      case "PAGE_EVENT":
+        return mutate(async () => {
+          if (
+            (await store.read("meta", "reading-preference"))?.enabled === false
+          )
+            return { skipped: true };
+          const url = readingURL(m.url);
+          if (!url || !["click", "link"].includes(m.event?.kind))
+            return { skipped: true };
+          const page = await store.read("pages", `page:${url}`);
+          if (!page) return { skipped: true };
+          const label = String(m.event.label || "")
+            .slice(0, 200)
+            .trim();
+          if (!label) return { skipped: true };
+          page.activities = [
+            ...(page.activities || []),
+            {
+              kind: m.event.kind,
+              label,
+              targetURL: readingURL(m.event.targetURL) || "",
+              at: Date.now(),
+            },
+          ];
+          await store.put("pages", page);
           return { saved: true };
         });
       case "PAGE_DELETE":
@@ -88,10 +163,13 @@ export function createService({
         );
       case "NOTE_SAVE":
         return mutate(async () => {
-          const s = await store.read("sessions", m.videoId);
+          const targetStore = String(m.videoId).startsWith("page:")
+            ? "pages"
+            : "sessions";
+          const s = await store.read(targetStore, m.videoId);
           if (!s) throw new Error("Open a saved video first.");
           s.personalNotes = String(m.text || "").slice(0, 20000);
-          await store.put("sessions", s);
+          await store.put(targetStore, s);
           return { saved: true };
         });
       case "BOOKMARK_ADD":
@@ -461,6 +539,37 @@ export function createService({
           s.pinned = !!m.pinned;
           await store.put("sessions", s);
         });
+      case "PAGE_GENERATE":
+        if (
+          ![
+            "notes",
+            "chat",
+            "actions",
+            "speaking",
+            "quiz",
+            "flashcards",
+          ].includes(m.mode)
+        )
+          throw new Error("Choose a supported page study tool.");
+        return runGeneration(
+          { ...m, sourceKind: "page", videoId: String(m.pageId) },
+          await settings(),
+        );
+      case "PAGE_GRAPH": {
+        const epoch = await store.generation();
+        const page = await store.read("pages", String(m.pageId));
+        if (!page) throw new Error("This page has not been saved yet.");
+        const graph = await extractGraph(
+          await settings(),
+          retrieve(pageEvidence(page), "", "graph"),
+        );
+        await mutate(async () => {
+          if (epoch !== (await store.generation()))
+            throw new Error("Data was cleared during extraction.");
+          await store.mergeGraph(graph);
+        });
+        return graph;
+      }
       case "GENERATE":
         return runGeneration(m, await settings());
       case "BATCH_START":
@@ -639,13 +748,18 @@ export function createService({
     busy.add(m.videoId);
     try {
       const epoch = await store.generation();
+      const targetStore = m.sourceKind === "page" ? "pages" : "sessions";
       const sessions =
         m.mode === "research"
           ? (await store.read("sessions")).filter((s) => s.pinned)
-          : [await store.read("sessions", m.videoId)].filter(Boolean);
+          : [await store.read(targetStore, m.videoId)].filter(Boolean);
       let all = (
         await Promise.all(
-          sessions.map(async (s) => chunks(s, await store.frames(s.id))),
+          sessions.map(async (s) =>
+            m.sourceKind === "page"
+              ? pageEvidence(s)
+              : chunks(s, await store.frames(s.id)),
+          ),
         )
       ).flat();
 
@@ -671,13 +785,13 @@ export function createService({
           await mutate(async () => {
             if (epoch !== (await store.generation()))
               throw new Error("Data was cleared.");
-            const current = await store.read("sessions", s.id);
+            const current = await store.read(targetStore, s.id);
             if (!current) throw new Error("Session expired. Reopen the video.");
             current.jobs = [
               ...(current.jobs || []),
               { id: jobId, mode: m.mode, evidence: all },
             ].slice(-4);
-            await store.put("sessions", current);
+            await store.put(targetStore, current);
           });
       }
       let batches = deep
@@ -706,13 +820,13 @@ export function createService({
         await mutate(async () => {
           if (epoch !== (await store.generation()))
             throw new Error("Data was cleared during generation.");
-          const current = await store.read("sessions", targetId);
+          const current = await store.read(targetStore, targetId);
           if (!current) return;
           current.outputs = [
             ...(current.outputs || []).filter((o) => o.id !== output.id),
             output,
           ].slice(-200);
-          await store.put("sessions", current);
+          await store.put(targetStore, current);
         });
       };
       const result =

@@ -1,3 +1,4 @@
+import { sourceURL } from "./page-source.js";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import { time } from "./core.js";
@@ -27,7 +28,7 @@ try {
         const markdown = DOMPurify.sanitize(marked.parse(o.answer || ""), {
           FORBID_TAGS: ["img", "style", "iframe", "form", "input", "button"],
         });
-        return `<section class="report">${o.query ? `<h2>${esc(o.query)}</h2>` : ""}<div>${markdown}</div><p class="muted">SAGE: ${esc(o.verification?.status || "unchecked")}. Source support is not a guarantee of factual truth.</p><h2>Source references — original-text appendix</h2><p class="muted">Raw captions and OCR are preserved for checking the answer. They may contain recognition errors and remain in their original language.</p>${(o.evidence || []).map((e, i) => `<div class="source" id="source-${index}-${i + 1}"><h3>E${i + 1} · ${esc(e.title)} · ${time(e.startTime)}</h3><p class="muted">${esc(e.kind)} evidence</p><a href="https://www.youtube.com/watch?v=${encodeURIComponent(e.videoId)}&amp;t=${Math.floor(e.startTime || 0)}s">Open this video moment</a><p class="source-text" dir="auto">${esc(e.text)}</p></div>`).join("")}</section>`;
+        return `<section class="report">${o.query ? `<h2>${esc(o.query)}</h2>` : ""}<div>${markdown}</div><p class="muted">SAGE: ${esc(o.verification?.status || "unchecked")}. Source support is not a guarantee of factual truth.</p><h2>Source references — original-text appendix</h2><p class="muted">Captured page text, captions and screen text are preserved for checking the answer. They may contain recognition errors and remain in their original language.</p>${(o.evidence || []).map((e, i) => `<div class="source" id="source-${index}-${i + 1}"><h3>E${i + 1} · ${esc(e.title)}${e.kind === "page" ? "" : " · " + time(e.startTime)}</h3><p class="muted">${esc(e.kind)} evidence</p><a href="${esc(sourceURL(e))}">${e.kind === "page" ? "Open original page" : "Open this video moment"}</a><p class="source-text" dir="auto">${esc(e.text)}</p></div>`).join("")}</section>`;
       })
       .join("");
   document.querySelector("#print").onclick = () => window.print();

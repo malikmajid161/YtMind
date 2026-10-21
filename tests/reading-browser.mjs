@@ -44,11 +44,60 @@ try {
   assert.equal(pages[0].url, "https://reading.example.test/article");
   assert.match(pages[0].text, /Compare sources/);
   assert.doesNotMatch(pages[0].text, /SECRET|Navigation marker/);
+  await article.evaluate(() => {
+    const button = document.createElement("button");
+    button.textContent = "Expand lesson details";
+    button.onclick = () => {
+      const aside = document.createElement("aside");
+      aside.textContent =
+        "Expanded lesson details outside the original article.";
+      document.body.append(aside);
+    };
+    document.body.append(button);
+  });
+  await article.getByRole("button", { name: "Expand lesson details" }).click();
+  await expect
+    .poll(async () => (await state()).pages[0].capturedText, { timeout: 15000 })
+    .toContain("Expanded lesson details outside the original article.");
+  await expect
+    .poll(
+      async () =>
+        (await state()).pages[0].activities.some(
+          (a) => a.label === "Expand lesson details",
+        ),
+      { timeout: 15000 },
+    )
+    .toBe(true);
+
   await panel.bringToFront();
   await panel.evaluate(() =>
     document.querySelector("#settings-dialog")?.close(),
   );
+  // A tab-hosted test panel would otherwise see itself as the active tab.
+  // Simulate Chrome's side-panel context using the real article tab identity.
+  const articleTab = await worker.evaluate(
+    async () =>
+      (await chrome.tabs.query({ url: "https://reading.example.test/*" }))[0],
+  );
+  await panel.evaluate((tab) => {
+    chrome.tabs.query = async () => [tab];
+    document.dispatchEvent(new Event("visibilitychange"));
+  }, articleTab);
+  await expect(panel.locator("body")).toHaveAttribute(
+    "data-context",
+    "reading",
+  );
+  await expect(panel.locator('[data-tab="notes"]')).toHaveText("Summary");
+  await expect(panel.locator('[data-tab="vera"]')).toBeHidden();
+  await expect(panel.locator('[data-tab="lab"]')).toBeHidden();
+  await panel.locator('[data-tab="chat"]').click();
+  await expect(
+    panel.getByRole("button", { name: "Help me with this page", exact: true }),
+  ).toBeVisible();
   await panel.locator('[data-tab="library"]').click();
+  await expect(panel.locator("#show-chrome-history")).toBeVisible();
+  await expect(panel.locator("[data-export-page-json]").first()).toBeVisible();
+
   await panel.locator("[data-reading-page] summary").first().click();
   await expect(panel.locator(".reading-page-body").first()).toContainText(
     "Compare sources",
@@ -56,18 +105,14 @@ try {
   await panel.locator("#page-search").fill("not-present-anywhere");
   assert.equal(await panel.locator("[data-page-id]:visible").count(), 0);
   await panel.locator("#page-search").fill("");
-  await panel
-    .getByRole("button", { name: "Pause reading history", exact: true })
-    .click();
+  await panel.locator("#reading-toggle").click();
   assert.equal((await state()).readingEnabled, false);
   await article.goto("https://reading.example.test/second");
   await article.bringToFront();
   await article.waitForTimeout(3200);
   assert.equal((await state()).pages.length, 1);
   await panel.bringToFront();
-  await panel
-    .getByRole("button", { name: "Resume reading history", exact: true })
-    .click();
+  await panel.locator("#reading-toggle").click();
   await article.reload();
   await article.bringToFront();
   await expect

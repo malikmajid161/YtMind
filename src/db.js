@@ -128,8 +128,34 @@ export class Store {
     });
   }
   async cleanup(now = Date.now()) {
-    const expired = (await this.read("sessions")).filter(
-      (s) => !s.saved && !s.pinned && s.expiresAt <= now,
+    const rolling = (await this.read("meta", "retention-policy"))?.hours === 24;
+    if (rolling) {
+      const cutoff = now - TTL;
+      const pages = await this.read("pages");
+      await this.tx(["pages", "meta", "nodes", "edges"], (t) => {
+        for (const p of pages) {
+          if ((p.firstSeenAt || p.lastSeenAt || 0) <= cutoff)
+            t.objectStore("pages").delete(p.id);
+        }
+        for (const name of ["nodes", "edges"]) {
+          const r = t.objectStore(name).openCursor();
+          r.onsuccess = () => {
+            const c = r.result;
+            if (!c) return;
+            if ((c.value.updatedAt || 0) <= cutoff) c.delete();
+            c.continue();
+          };
+        }
+        const batch = t.objectStore("meta").get("batch");
+        batch.onsuccess = () => {
+          if (batch.result) t.objectStore("meta").delete("batch");
+        };
+      });
+    }
+    const expired = (await this.read("sessions")).filter((s) =>
+      rolling
+        ? (s.createdAt || 0) + TTL <= now
+        : !s.saved && !s.pinned && s.expiresAt <= now,
     );
     const ids = new Set(expired.map((s) => s.id)),
       frames = await this.read("frames");
@@ -175,11 +201,13 @@ export class Store {
         const meta = t.objectStore("meta");
         const r = meta.get("generation");
         const preference = meta.get("reading-preference");
-        preference.onsuccess = () => {
+        const retention = meta.get("retention-policy");
+        retention.onsuccess = () => {
           const savedPreference = preference.result;
           meta.clear();
           meta.put({ id: "generation", value: (r.result?.value || 0) + 1 });
           if (savedPreference) meta.put(savedPreference);
+          if (retention.result) meta.put(retention.result);
         };
         for (const n of ["sessions", "frames", "nodes", "edges", "pages"])
           t.objectStore(n).clear();

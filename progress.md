@@ -325,3 +325,24 @@ Caption checkpoint regression results: 50/50 unit tests, build, browser UI integ
 - Added search across saved video titles, transcripts, outputs, notebook text and bookmark labels, with matching excerpts. Added a per-video personal notebook and labelled saved timestamps, stored separately from evidence and not automatically sent to the model.
 - Verification: 112 automated tests and build passed. Chrome UI integration passed quizzes/cards, reveal controls, notebook save, bookmarks and Library search. Native isolated Chromium reading-history tests passed capture, private-field omission, token-query removal, pause/resume and exclusion of password forms; no API calls in that test. Final rerun after lazy page-body display is recorded below.
 - Final verification: 113 tests passed, including old database migration preserving existing notes. Both Chrome UI and native reading-history checks passed again after lazy loading saved page text. Live Groq fixture calls generated five quiz questions and five flashcards with reveal controls and citations; source correctness remains unchecked rather than a human accuracy claim.
+
+
+## 2026-10-22 - Context workspace and 24-hour history
+- YouTube keeps Notes, Ask, Actions, Graph, Frames, Library and Lab. Other websites switch to page Summary, Ask, Actions, Graph and reading Overview.
+- Captured readable text accumulates as visible page content changes and the user scrolls; trusted non-form clicks and link destinations are recorded. Challenge pages and password/payment forms are excluded.
+- Per-page Markdown report and JSON exports include identity, coverage, captured text, timestamped steps, personal notes and saved outputs. Chrome history and open-tab metadata can be viewed/exported separately.
+- Optional Chrome history permission is requested from Library. Enabling it activates a 24-hour retention policy, deleting older Chrome visit records and older YTMind records. Scheduled cleanup runs approximately every five minutes while Chrome is running; startup also cleans. Cookies, saved passwords and site sign-in data are not deleted or exported. Existing personal Chrome history was NOT deleted during development/testing.
+- Groq model, chat and audio requests explicitly omit cookies. No Chrome cookies or password API permission requested.
+- Limitations: not every action/site is observable, no retrospective recovery of uncaptured page bodies, no universal screenshot recording, Chrome history listing currently capped at 10,000 matching URLs. Security checks are not bypassed. New Selenium helper code remains a separate in-progress capability, not a validated general browser agent.
+- Validation: 117 automated tests and extension build passed; native reading capture test passed in isolated Chromium. Additional UI regression testing is tracked in the active session.
+
+- Follow-up validation: YouTube regression UI/integration passed with fixture AI responses and real local storage/OCR; native reading test extended to verify page Summary context, hidden video-only tabs, page-help button and JSON export control. Chrome's actual personal profile was not modified by tests.
+- Added source-aware page task-help prompt. The page is refreshed before generation where allowed. This is guidance, not autonomous task execution.
+
+
+## 2026-10-22 - 3.0.36 Browser task menu
+- Added Menu entries for Browser Agent and Web Scraper without changing YouTube's seven primary tabs.
+- Added task chat, document picker, Claude/ChatGPT adapters, attachment confirmation, login/security pause, response monitoring, duplicate-submission guard, cancellation and result export. Cookies and passwords are not exported. Active provider task data is not persisted.
+- Public-site Selenium collection supports text, links, tables and sanitized HTML through the paired local helper. Its headless browser is isolated from the user's Chrome profile; cancellation targets its own process tree only.
+- Improved detection: throttled mutation capture, character changes, expandable sections and navigation events. Visible non-article text is captured while sensitive forms stay excluded.
+- Validation: 122 unit/integration tests; real Selenium controlled-page text/link/table/HTML test; helper API against Example Domain; unsupported operation and untrusted origin rejected. Browser Agent upload/send/read/export controls and 320px layout passed against a provider HTML fixture. YouTube UI and integration passed. Live signed-in provider websites remain unverified and may need manual assistance.

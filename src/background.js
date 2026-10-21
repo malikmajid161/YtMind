@@ -1,3 +1,9 @@
+import { agentRequest } from "./browser-agent.js";
+import {
+  maintainBrowserHistory,
+  browserHistoryStatus,
+} from "./chrome-history.js";
+import { browserTaskRequest } from "./browser-task-client.js";
 import { readingURL } from "./web-history.js";
 import { Store } from "./db.js";
 import { createService } from "./service.js";
@@ -24,7 +30,7 @@ async function dispatch(m, sender) {
   const fromContent = !sender.url?.startsWith(chrome.runtime.getURL(""));
   if (sender.id !== chrome.runtime.id) throw new Error("Untrusted sender.");
   if (fromContent) {
-    if (["READING_STATUS", "PAGE_CAPTURE"].includes(m.type)) {
+    if (["READING_STATUS", "PAGE_CAPTURE", "PAGE_EVENT"].includes(m.type)) {
       const tab = await chrome.tabs.get(sender.tab?.id);
       if (
         (sender.frameId && sender.frameId !== 0) ||
@@ -34,7 +40,7 @@ async function dispatch(m, sender) {
       )
         throw new Error("This page is excluded from reading history.");
       if (
-        m.type === "PAGE_CAPTURE" &&
+        ["PAGE_CAPTURE", "PAGE_EVENT"].includes(m.type) &&
         readingURL(m.url) !== readingURL(tab.url)
       )
         throw new Error("Page changed before capture.");
@@ -60,6 +66,46 @@ async function dispatch(m, sender) {
     const result = await service.dispatch(m);
     await readingBadge();
     return result;
+  }
+  if (m.type === "CHROME_HISTORY_STATUS") {
+    const status = await browserHistoryStatus(chrome);
+    const tabs = await chrome.tabs.query({});
+    return {
+      ...status,
+      tabs: tabs
+        .filter((t) => !t.incognito && /^https?:/.test(t.url || ""))
+        .map((t) => ({ title: t.title, url: t.url, active: t.active })),
+    };
+  }
+  if (m.type === "CHROME_HISTORY_SYNC") {
+    const result = await maintainBrowserHistory(chrome);
+    await service.dispatch({ type: "RETENTION_ENABLE" });
+    return result;
+  }
+  if (m.type === "BROWSER_AGENT") return agentRequest(m);
+  if (m.type === "BROWSER_TASK") return browserTaskRequest(m);
+  if (m.type === "REFRESH_PAGE") {
+    const tab = await chrome.tabs.get(m.tabId);
+    if (tab.incognito || !readingURL(tab.url))
+      throw new Error(
+        "This page cannot be saved. Open a readable article instead.",
+      );
+    try {
+      await chrome.tabs.sendMessage(tab.id, { type: "READ_PAGE_NOW" });
+    } catch (error) {
+      if (
+        !/Receiving end does not exist|Could not establish connection/i.test(
+          error.message,
+        )
+      )
+        throw error;
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ["web-content.js"],
+      });
+      await chrome.tabs.sendMessage(tab.id, { type: "READ_PAGE_NOW" });
+    }
+    return { checked: true };
   }
   if (m.type === "MEDIA_HELPER") return helperRequest(m);
   if (m.type === "DRAWER_PREFERENCE") {
@@ -217,11 +263,12 @@ chrome.action?.onClicked.addListener((tab) => {
     .then(() => startVideo(tab))
     .catch((error) => console.error("YTMind panel opening:", error.message));
 });
-const cleanup = () => service.cleanup().catch(() => {});
+const cleanup = () =>
+  Promise.allSettled([service.cleanup(), maintainBrowserHistory(chrome)]);
 chrome.runtime.onInstalled.addListener(() => {
   configurePanel();
   chrome.storage.local.setAccessLevel({ accessLevel: "TRUSTED_CONTEXTS" });
-  chrome.alarms.create("cleanup", { periodInMinutes: 60 });
+  chrome.alarms.create("cleanup", { periodInMinutes: 5 });
   cleanup();
   // Updating/reloading an extension does not refresh existing YouTube tabs.
   // Reattach their content script so the on-page launcher returns immediately.

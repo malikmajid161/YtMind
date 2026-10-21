@@ -29,6 +29,7 @@ export async function transcribeAudio(
       "https://api.groq.com/openai/v1/audio/transcriptions",
       {
         method: "POST",
+        credentials: "omit",
         headers: { Authorization: `Bearer ${apiKey}` },
         body: form,
         signal: signal

@@ -1,3 +1,4 @@
+import { browserTaskRequest, cleanupBrowserJobs } from "./browser-tasks.mjs";
 import http from "node:http";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
@@ -12,9 +13,11 @@ export function previewServer(port = 4173) {
     ".wasm": "application/wasm",
     ".gz": "application/gzip",
   };
+  cleanupBrowserJobs().catch(() => {});
   const server = http.createServer(async (req, res) => {
     try {
       const requestUrl = new URL(req.url, "http://localhost");
+      if (await browserTaskRequest(req, res, requestUrl)) return;
       if (await mediaRequest(req, res, requestUrl)) return;
       const url = new URL(req.url, "http://localhost"),
         p = path.resolve(

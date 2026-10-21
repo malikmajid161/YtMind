@@ -38,7 +38,7 @@ export function extractReadingText(doc) {
   )
     return "";
   const root =
-    doc.querySelector("article") || doc.querySelector("main") || doc.body;
+    doc.body || doc.querySelector("main") || doc.querySelector("article");
   if (!root) return "";
   const walker = doc.createTreeWalker(root, 4);
   const pieces = [];
@@ -54,7 +54,14 @@ export function extractReadingText(doc) {
       )
     )
       continue;
-    if (!parent.getClientRects().length) continue;
+    const rects = parent.getClientRects();
+    if (
+      !rects.length ||
+      ![...rects].some(
+        (r) => r.bottom >= 0 && r.top <= doc.defaultView.innerHeight,
+      )
+    )
+      continue;
     const text = node.textContent.replace(/\s+/g, " ").trim();
     if (text) {
       pieces.push(text);

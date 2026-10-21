@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "YTMind - Your video, understood",
-  "version": "3.0.34",
+  "version": "3.0.36",
   "minimum_chrome_version": "116",
   "description": "Save webpages, understand YouTube videos, and build notes, quizzes and a searchable learning library.",
   "permissions": [
@@ -63,5 +63,6 @@
       "resources": ["panel.html"],
       "matches": ["https://www.youtube.com/*"]
     }
-  ]
+  ],
+  "optional_permissions": ["history"]
 }

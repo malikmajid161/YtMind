@@ -3,18 +3,35 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>YTMind · Video workspace</title>
+    <title>YTMind · Learning workspace</title>
     <link rel="stylesheet" href="panel.css" />
   </head>
   <body>
     <header class="topbar">
       <a class="brand" href="#notes" aria-label="YTMind home"
         ><span class="brand-icon">✳</span>ytmind<span class="version"
-          >/ 03.0.26</span
+          >/ 03.0.36</span
         ></a
-      ><button class="icon-button" id="settings-open" aria-label="Settings">
-        ⚙
-      </button>
+      >
+      <div class="topbar-controls">
+        <details class="workspace-menu">
+          <summary>Menu</summary>
+          <div class="workspace-menu-items">
+            <button id="browser-agent-open" type="button">
+              Browser Agent<span>Upload documents and run tasks</span>
+            </button>
+          <button id="web-scraper-open" type="button">Web Scraper<span>Collect text, links and tables</span></button></div>
+        </details>
+        <button
+          class="history-chip"
+          id="history-status-toggle"
+          aria-label="Pause reading history"
+        >
+          History on</button
+        ><button class="icon-button" id="settings-open" aria-label="Settings">
+          ⚙
+        </button>
+      </div>
     </header>
     <div id="preview-label" hidden>
       DESIGN PREVIEW · sample data · no API calls
@@ -22,7 +39,8 @@
     <main>
       <section class="intro">
         <div class="eyebrow">
-          <span class="dot"></span> YOUR LEARNING WORKSPACE
+          <span class="dot"></span>
+          <span id="context-label">YOUR LEARNING WORKSPACE</span>
         </div>
         <h1>Watch. Understand.<br /><span>Make it yours.</span></h1>
         <p>Good ideas deserve more than another open tab.</p>
@@ -68,25 +86,26 @@
         <div class="video-top">
           <span class="video-symbol">▶</span>
           <div>
-            <div class="eyebrow">NOW LEARNING</div>
+            <div class="eyebrow" id="current-source-label">NOW LEARNING</div>
             <h2 id="video-title">Open a YouTube video</h2>
           </div>
           <button
             id="pin"
             class="icon-button"
-            aria-label="Pin video to library"
-            title="Keep this video's evidence beyond 24 hours"
+            aria-label="Select video for research"
+            title="Select this video for research"
           >
             ◇
           </button>
         </div>
         <div class="video-meta">
           <span id="source-status">Waiting for a video</span
-          ><span id="retention">24h session</span>
+          ><span id="retention">Saved automatically</span>
         </div>
       </section>
       <nav class="tabs" aria-label="Workspace">
-        <button data-tab="notes" class="active">Notes</button
+        <button data-tab="home" hidden>Overview</button
+        ><button data-tab="notes" class="active">Notes</button
         ><button data-tab="chat">Ask</button
         ><button data-tab="actions">Actions</button
         ><button data-tab="graph">Graph</button

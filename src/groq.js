@@ -5,6 +5,7 @@ export async function listModels(apiKey, fetcher = fetch) {
   let response;
   try {
     response = await fetcher("https://api.groq.com/openai/v1/models", {
+      credentials: "omit",
       headers: { Authorization: `Bearer ${apiKey}` },
       signal: AbortSignal.timeout(25000),
     });
@@ -52,6 +53,7 @@ export async function complete(
         "https://api.groq.com/openai/v1/chat/completions",
         {
           method: "POST",
+          credentials: "omit",
           signal: AbortSignal.timeout(25000),
           headers: {
             "Content-Type": "application/json",
