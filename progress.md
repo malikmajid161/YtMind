@@ -346,3 +346,8 @@ Caption checkpoint regression results: 50/50 unit tests, build, browser UI integ
 - Public-site Selenium collection supports text, links, tables and sanitized HTML through the paired local helper. Its headless browser is isolated from the user's Chrome profile; cancellation targets its own process tree only.
 - Improved detection: throttled mutation capture, character changes, expandable sections and navigation events. Visible non-article text is captured while sensitive forms stay excluded.
 - Validation: 122 unit/integration tests; real Selenium controlled-page text/link/table/HTML test; helper API against Example Domain; unsupported operation and untrusted origin rejected. Browser Agent upload/send/read/export controls and 320px layout passed against a provider HTML fixture. YouTube UI and integration passed. Live signed-in provider websites remain unverified and may need manual assistance.
+
+
+## 2026-10-22 - 3.0.37 Close button fix
+- Root cause: panel's global submit listener prevents default form submissions, including the Browser Agent close form. Replaced form-based closing with an explicit button and dialog.close(). Drafts and running-task monitoring remain intact.
+- Added browser regression checks for X close, reopening with draft preserved, and Escape dismissal.

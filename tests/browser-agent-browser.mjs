@@ -37,6 +37,21 @@ try {
   await panel.locator(".workspace-menu summary").click();
   await panel.locator("#browser-agent-open").click();
   await expect(panel.locator("#browser-agent-dialog")).toBeVisible();
+  await panel.locator("#agent-prompt").fill("Keep this draft when closed");
+  await panel
+    .getByRole("button", { name: "Close browser agent", exact: true })
+    .click();
+  await expect(panel.locator("#browser-agent-dialog")).not.toBeVisible();
+  await panel.locator(".workspace-menu summary").click();
+  await panel.locator("#browser-agent-open").click();
+  await expect(panel.locator("#agent-prompt")).toHaveValue(
+    "Keep this draft when closed",
+  );
+  await panel.keyboard.press("Escape");
+  await expect(panel.locator("#browser-agent-dialog")).not.toBeVisible();
+  await panel.locator(".workspace-menu summary").click();
+  await panel.locator("#browser-agent-open").click();
+
   await panel
     .locator("#agent-prompt")
     .fill("Create an assignment from this lecture, using clear sections.");

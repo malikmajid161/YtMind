@@ -1,7 +1,7 @@
 export function installBrowserAgent({ api, currentURL, refreshPage }) {
   const dialog = document.createElement("dialog");
   dialog.id = "browser-agent-dialog";
-  dialog.innerHTML = `<form method="dialog" class="agent-title"><div><span class="eyebrow">BROWSER TASKS</span><h2>What would you like done?</h2></div><button class="icon-button" aria-label="Close browser agent">&times;</button></form>
+  dialog.innerHTML = `<div class="agent-title"><div><span class="eyebrow">BROWSER TASKS</span><h2>What would you like done?</h2></div><button type="button" id="browser-agent-close" class="icon-button" aria-label="Close browser agent">&times;</button></div>
  <p>Send a task and document to your signed-in Claude or ChatGPT tab, or collect information from public websites.</p>
  <label for="agent-mode">Task destination</label><select id="agent-mode"><option value="claude">Claude - use my Chrome session</option><option value="chatgpt">ChatGPT - use my Chrome session</option><option value="collect">Collect webpage information</option><option value="links">Collect webpage links</option><option value="tables">Collect webpage tables</option><option value="html">Collect cleaned webpage HTML</option></select>
  <div id="agent-messages" class="agent-messages" aria-live="polite"><p>For example: Use the attached lecture to draft an assignment with an introduction, clear sections and a conclusion.</p></div>
@@ -12,6 +12,7 @@ export function installBrowserAgent({ api, currentURL, refreshPage }) {
  <p class="muted">Keep YTMind open until the task finishes. Your browser keeps your sign-in. YTMind does not collect passwords or cookies. Provider websites may require login, upload confirmation or a security check. Site layouts can change.</p>`;
   document.body.append(dialog);
   const $ = (s) => dialog.querySelector(s);
+  $("#browser-agent-close").addEventListener("click", () => dialog.close());
   let task = null,
     timer = null,
     result = "",
