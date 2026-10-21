@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "YTMind - Your video, understood",
-  "version": "3.0.33",
+  "version": "3.0.34",
   "minimum_chrome_version": "116",
-  "description": "Turn YouTube evidence into study notes, actions, and a connected learning library.",
+  "description": "Save webpages, understand YouTube videos, and build notes, quizzes and a searchable learning library.",
   "permissions": [
     "storage",
     "sidePanel",
@@ -20,11 +20,7 @@
       }
     }
   },
-  "host_permissions": [
-    "https://www.youtube.com/*",
-    "https://api.groq.com/*",
-    "http://127.0.0.1:4175/*"
-  ],
+  "host_permissions": ["http://*/*", "https://*/*"],
   "background": {
     "service_worker": "background.js",
     "type": "module"
@@ -33,6 +29,12 @@
     {
       "matches": ["https://www.youtube.com/*"],
       "js": ["content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "exclude_matches": ["https://www.youtube.com/*"],
+      "js": ["web-content.js"],
       "run_at": "document_idle"
     }
   ],

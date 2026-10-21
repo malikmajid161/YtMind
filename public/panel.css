@@ -1010,3 +1010,9 @@ body {
 .result-source-title {
   overflow-wrap: anywhere;
 }
+
+.reading-page-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+}

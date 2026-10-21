@@ -1,3 +1,4 @@
+import { searchLibrary } from "./library-search.js";
 import { hasVisualSource } from "./visual-source.js";
 import { sourceTimeline } from "./source-timeline.js";
 import { contextMessage } from "./extension-context.js";
@@ -11,7 +12,7 @@ import { time, defaults, combineParts } from "./core.js";
 import { recognize } from "./ocr.js";
 import { demoState, demoFrames } from "./preview-data.js";
 import { studioMode, localService, sourceId, fileFrame } from "./studio.js";
-import { parseTranscript } from "./source.js";
+import { parseTranscript, youtubeVideoId } from "./source.js";
 import { transcribeAudio, recordTabAudio } from "./audio.js";
 import { zipSync, strToU8 } from "fflate";
 import { openPDFExport } from "./pdf-export.js";
@@ -83,6 +84,10 @@ function notice(text, error = false) {
 }
 const session = () => state.sessions.find((s) => s.id === videoId);
 const questionDrafts = new Map();
+let libraryQuery = "";
+let pageQuery = "";
+const notebookDrafts = new Map();
+let videoPosition = 0;
 let renderedVideoId = null,
   renderedTab = null;
 async function content(type, fields = {}) {
@@ -126,7 +131,14 @@ async function refresh(force = false) {
         active: true,
         currentWindow: true,
       });
-      if (t?.id) {
+      if (t?.id && t.url && !youtubeVideoId(t.url)) {
+        if (tabId !== t.id) active = "library";
+        videoId = null;
+        tabId = t.id;
+        capture = false;
+        followRequested = false;
+        activeIsShort = false;
+      } else if (t?.id) {
         try {
           const info = await api("CONNECT_VIDEO", { tabId: t.id });
           if (info?.navigating) return;
@@ -159,6 +171,7 @@ async function refresh(force = false) {
           videoId = info.videoId;
           activeIsShort = !!info.isShort;
           videoPaused = info.paused;
+          videoPosition = Math.max(0, Number(info.currentTime) || 0);
           tabId = t.id;
           capture = !!info.capturing;
         } catch {
@@ -170,7 +183,8 @@ async function refresh(force = false) {
       }
     }
     const s = session();
-    $("#video-title").textContent = s?.title || "Open a YouTube video";
+    $("#video-title").textContent =
+      s?.title || "Your reading and video library";
     $("#source-status").textContent = s
       ? s.transcript.length
         ? `${s.transcript.length} ${s.captionSource?.includes("audio") ? "speech recognition" : s.captionStatus === "manual" ? "imported text" : "caption"} segments · ${s.ingestCoverage?.status === "partial" ? "partial audio source" : "source ready"}`
@@ -212,9 +226,17 @@ async function refresh(force = false) {
       state.nodes.length,
       state.edges.length,
       state.sessions.map((s) => [s.id, s.pinned]),
+      state.pages?.map((p) => [p.id, p.lastSeenAt]),
+      state.readingEnabled,
       capture,
     ]);
-    if (force || next !== signature) {
+    if (
+      (force || next !== signature) &&
+      (force ||
+        !document.activeElement?.matches(
+          "#library-search,#page-search,#personal-notes,#bookmark-label",
+        ))
+    ) {
       signature = next;
       render();
     }
@@ -290,13 +312,19 @@ function render() {
     html += `<button class="primary" data-generate="${active}" ${!s || requestBusy ? "disabled" : ""}>${active === "notes" ? "Generate study notes" : "Extract action steps"}<span>↗</span></button>`;
     if (active === "notes")
       html += `<button class="secondary" data-generate="speaking" ${!s || requestBusy ? "disabled" : ""}>Generate speaking notes</button>`;
+    if (active === "notes")
+      html += `<div class="toolbar"><button class="secondary" data-generate="quiz" ${!s || requestBusy ? "disabled" : ""}>Quiz me</button><button class="secondary" data-generate="flashcards" ${!s || requestBusy ? "disabled" : ""}>Create flashcards</button></div><p class="muted">Practice what you learned. Reveal each answer when you’re ready, then check its video reference.</p>`;
+    if (active === "notes" && s)
+      html += `<details class="personal-notebook"><summary>Your notebook &amp; saved moments</summary><p class="muted">Your own notes stay on this device and are kept separate from video evidence.</p><label for="personal-notes">My notes</label><textarea id="personal-notes" maxlength="20000" rows="5">${esc(notebookDrafts.get(s.id) ?? s.personalNotes ?? "")}</textarea><button class="secondary" id="save-personal-notes">Save my notes</button><label for="bookmark-label">Name this moment</label><input id="bookmark-label" maxlength="300" placeholder="e.g. The useful explanation"><button class="secondary" id="save-bookmark">Save this moment · ${time(videoPosition)}</button>${(s.bookmarks || []).map((b) => `<div class="source-proof"><button class="source-link" data-seek="${b.timestamp}" data-video="${esc(s.id)}">${time(b.timestamp)} ↗ · ${esc(b.label)}</button><button class="text-button" data-delete-bookmark="${esc(b.id)}">Remove saved moment</button></div>`).join("")}</details>`;
     if (requestBusy)
       html +=
         '<button class="text-button" id="pause-generation">Pause after this section</button>';
     const last = s?.outputs
       ?.filter(
         (o) =>
-          o.mode === active || (active === "notes" && o.mode === "speaking"),
+          o.mode === active ||
+          (active === "notes" &&
+            ["speaking", "quiz", "flashcards"].includes(o.mode)),
       )
       .at(-1);
     const output = last?.jobId
@@ -407,12 +435,22 @@ function render() {
       (a, b) => (b.lastSeenAt || b.createdAt) - (a.lastSeenAt || a.createdAt),
     );
     html += `<section class="batch-card"><h3>Study selected videos</h3><p class="muted">Turn up to 10 selected videos into organized notes. Your progress is saved as you go. Leave YTMind open until your notes are ready.</p><div class="source-controls"><button id="batch-start" class="primary" ${!pinned.length || requestBusy ? "disabled" : ""}>Generate all lecture notes</button>${state.batch && state.batch.status !== "complete" ? `<button id="batch-resume" class="secondary" ${requestBusy ? "disabled" : ""}>Continue saved batch</button><button id="batch-discard" class="text-button" ${requestBusy ? "disabled" : ""}>Discard batch progress</button>` : ""}${batchRunning ? '<button id="batch-pause" class="secondary">Pause after current section</button>' : ""}</div>${state.batch ? `<ul>${state.batch.entries.map((e) => `<li>${esc(e.title)} · ${e.nextBatch}/${e.totalBatches} sections · ${esc(e.status)}${e.error ? ` · ${esc(e.error)}` : ""}</li>`).join("")}</ul><div class="toolbar"><button id="batch-export" class="secondary">Download lecture notes ZIP</button><button id="batch-pdf" class="secondary">Save lecture notes as PDF</button></div>` : ""}</section>`;
-    html += `<h3>Video history · ${history.length}</h3>`;
+    html += `<section class="batch-card"><h3>Reading history</h3><p class="muted">${state.readingEnabled !== false ? "On · readable pages are saved automatically on this device." : "Paused · new pages are not being saved."} Private browsing, forms and excluded sensitive pages are not recorded. Some websites and built-in PDF viewers cannot be read.</p><button class="secondary" id="reading-toggle">${state.readingEnabled !== false ? "Pause reading history" : "Resume reading history"}</button><button class="secondary" id="export-reading">Download reading history</button></section><label for="page-search">Search saved pages</label><input type="search" id="page-search" value="${esc(pageQuery)}" placeholder="Find a page or passage"><p id="page-search-count" class="muted"></p><div id="reading-pages">${
+      [...(state.pages || [])]
+        .sort((a, b) => b.lastSeenAt - a.lastSeenAt)
+        .map(
+          (p) =>
+            `<article class="library-card" data-page-id="${esc(p.id)}"><div><h3><a href="${esc(p.url)}" target="_blank" rel="noreferrer">${esc(p.title)} ↗</a></h3><small>${p.visits} visit${p.visits === 1 ? "" : "s"} · ${new Date(p.lastSeenAt).toLocaleDateString()} · ${p.progress}% furthest scroll</small><details data-reading-page="${esc(p.id)}"><summary>Read saved page</summary><pre class="reading-page-body" dir="auto"></pre></details><button class="text-button" data-delete-page="${esc(p.id)}">Delete saved page</button></div></article>`,
+        )
+        .join("") ||
+      '<p class="muted">Pages you read will appear here while history is on.</p>'
+    }</div>`;
+    html += `<h3>Video history · ${history.length}</h3><label for="library-search">Search your library</label><input id="library-search" type="search" value="${esc(libraryQuery)}" placeholder="Find a topic, phrase or command"><p id="library-search-count" class="muted" aria-live="polite"></p>`;
     html += history.length
       ? history
           .map(
             (s) =>
-              `<article class="library-card"><span>${s.pinned ? "◆" : "◇"}</span><div><h3><a href="${esc(s.url)}" target="_blank" rel="noreferrer">${esc(s.title)} ↗</a></h3><small>${s.transcript.length} segments · ${s.outputs?.length || 0} saved outputs</small>${
+              `<article class="library-card" data-library-id="${esc(s.id)}"><span>${s.pinned ? "◆" : "◇"}</span><div><h3><a href="${esc(s.url)}" target="_blank" rel="noreferrer">${esc(s.title)} ↗</a></h3><small>${s.transcript.length} segments · ${s.outputs?.length || 0} saved outputs · ${s.bookmarks?.length || 0} saved moments</small><div class="library-search-match"></div>${s.personalNotes ? `<details><summary>My notebook</summary><p dir="auto">${esc(s.personalNotes)}</p></details>` : ""}${s.bookmarks?.length ? `<details><summary>Saved moments (${s.bookmarks.length})</summary>${s.bookmarks.map((b) => `<button class="source-link" data-seek="${b.timestamp}" data-video="${esc(s.id)}">${time(b.timestamp)} ↗ · ${esc(b.label)}</button>`).join("")}</details>` : ""}${
                 s.outputs?.length
                   ? `<details data-history-id="${s.id}"><summary>View saved notes and answers (${s.outputs.length})</summary><div class="history-outputs"></div></details>`
                   : ""
@@ -479,6 +517,10 @@ function render() {
   renderedVideoId = videoId;
   renderedTab = active;
   if (active === "graph") drawGraph();
+  if (active === "library") {
+    applyLibrarySearch();
+    applyPageSearch();
+  }
 }
 function frameOCRText(frame) {
   const accepted =
@@ -557,7 +599,7 @@ const badgeLabels = {
 };
 function outputHTML(o) {
   const v = o.verification || { status: "unchecked", claims: [] };
-  return `<article class="result" data-output="${esc(o.id)}"><div class="result-head"><span class="eyebrow">${o.mode === "talkshow" ? "VIDEO ANALYSIS" : o.mode === "speaking" ? "YOUR SPEAKING NOTES" : o.mode === "notes" ? "YOUR STUDY NOTES" : o.mode === "actions" ? "YOUR ACTION PLAN" : o.generalKnowledge ? "VIDEO + GENERAL KNOWLEDGE" : "FROM YOUR SOURCES"}</span><span class="badge ${esc(v.status)}">${o.processing ? "Checking support�" : o.generalKnowledge ? "Includes general knowledge" : badgeLabels[v.status] || "Unchecked"}</span></div><h3 class="result-source-title">${esc(o.mode === "research" ? "Multi-video research" : o.evidence[0]?.title || "Source notes")}</h3><div class="markdown" dir="auto">${markdown(o.answer, o.evidence)}</div><div class="sources"><div class="eyebrow">SUPPORTING EXCERPTS · ${o.evidence.length}</div>${o.evidence
+  return `<article class="result" data-output="${esc(o.id)}"><div class="result-head"><span class="eyebrow">${o.mode === "quiz" ? "YOUR PRACTICE QUIZ" : o.mode === "flashcards" ? "YOUR FLASHCARDS" : o.mode === "talkshow" ? "VIDEO ANALYSIS" : o.mode === "speaking" ? "YOUR SPEAKING NOTES" : o.mode === "notes" ? "YOUR STUDY NOTES" : o.mode === "actions" ? "YOUR ACTION PLAN" : o.generalKnowledge ? "VIDEO + GENERAL KNOWLEDGE" : "FROM YOUR SOURCES"}</span><span class="badge ${esc(v.status)}">${o.processing ? "Checking support�" : o.generalKnowledge ? "Includes general knowledge" : badgeLabels[v.status] || "Unchecked"}</span></div><h3 class="result-source-title">${esc(o.mode === "research" ? "Multi-video research" : o.evidence[0]?.title || "Source notes")}</h3><div class="markdown" dir="auto">${markdown(o.answer, o.evidence)}</div><div class="sources"><div class="eyebrow">SUPPORTING EXCERPTS · ${o.evidence.length}</div>${o.evidence
     .map(
       (e, i) =>
         `<div class="source-proof"><button class="source-link" data-seek="${e.startTime}" data-video="${esc(e.videoId)}"><span>E${i + 1} · ${esc(e.title)}<small>${esc(e.kind)} ${session()?.captionStatus === "manual" ? "· manually supplied" : ""}</small></span><span class="stamp">${time(e.startTime)} ↗</span></button><a class="print-source-link" href="https://www.youtube.com/watch?v=${encodeURIComponent(e.videoId)}&t=${Math.floor(e.startTime)}s">https://www.youtube.com/watch?v=${esc(e.videoId)}&amp;t=${Math.floor(e.startTime)}s</a><details><summary>Proof view · read stored excerpt</summary><pre>${esc(e.text)}</pre></details></div>`,
@@ -819,6 +861,66 @@ async function openSettings() {
   $("#auto-code").checked = s.autoCode;
   $("#settings-dialog").showModal();
 }
+function applyPageSearch() {
+  const query = pageQuery.toLocaleLowerCase().trim();
+  const pages = new Map((state.pages || []).map((p) => [p.id, p]));
+  let count = 0;
+  for (const card of document.querySelectorAll("[data-page-id]")) {
+    const p = pages.get(card.dataset.pageId);
+    card.hidden = !`${p?.title} ${p?.url} ${p?.text}`
+      .toLocaleLowerCase()
+      .includes(query);
+    if (!card.hidden) count++;
+  }
+  if ($("#page-search-count"))
+    $("#page-search-count").textContent = query
+      ? `${count} matching pages`
+      : `${count} saved pages`;
+}
+document.addEventListener(
+  "toggle",
+  (e) => {
+    if (e.target.dataset?.readingPage && e.target.open) {
+      const page = (state.pages || []).find(
+        (p) => p.id === e.target.dataset.readingPage,
+      );
+      e.target.querySelector(".reading-page-body").textContent =
+        page?.text || "Saved text is unavailable.";
+    }
+  },
+  true,
+);
+function applyLibrarySearch() {
+  const matches = searchLibrary(state.sessions, libraryQuery);
+  const indexed = new Map(matches.map((m) => [m.videoId, m]));
+  for (const card of document.querySelectorAll("[data-library-id]")) {
+    const match = indexed.get(card.dataset.libraryId);
+    card.hidden = !match;
+    const detail = card.querySelector(".library-search-match");
+    detail.textContent =
+      libraryQuery && match
+        ? `${match.kind}${Number.isFinite(match.timestamp) ? " · " + time(match.timestamp) : ""}: ${match.excerpt}`
+        : "";
+    detail.className = "library-search-match muted";
+  }
+  const count = $("#library-search-count");
+  if (count)
+    count.textContent = libraryQuery
+      ? `${matches.length} matching video${matches.length === 1 ? "" : "s"}`
+      : `${state.sessions.length} saved videos · search titles, transcripts and answers`;
+}
+document.addEventListener("input", (e) => {
+  if (e.target.id === "personal-notes" && session())
+    notebookDrafts.set(videoId, e.target.value);
+  if (e.target.id === "page-search") {
+    pageQuery = e.target.value;
+    applyPageSearch();
+  }
+  if (e.target.id === "library-search") {
+    libraryQuery = e.target.value;
+    applyLibrarySearch();
+  }
+});
 function renderMoments(query = "") {
   const container = $("#moment-list");
   if (!container) return;
@@ -862,6 +964,56 @@ document.addEventListener("click", async (e) => {
   const b = e.target.closest("button,[data-node]");
   if (!b) return;
   try {
+    if (b.id === "reading-toggle") {
+      await api("READING_TOGGLE", { enabled: state.readingEnabled === false });
+      await refresh(true);
+      return;
+    }
+    if (b.id === "export-reading") {
+      download(
+        JSON.stringify(
+          { exportedAt: new Date().toISOString(), pages: state.pages || [] },
+          null,
+          2,
+        ),
+        "ytmind-reading-history.json",
+        "application/json",
+      );
+      return;
+    }
+    if (b.dataset.deletePage) {
+      await api("PAGE_DELETE", { id: b.dataset.deletePage });
+      await refresh(true);
+      return;
+    }
+    if (b.id === "save-personal-notes") {
+      await api("NOTE_SAVE", { videoId, text: $("#personal-notes").value });
+      notice("Your notes are saved.");
+      await refresh(true);
+      return;
+    }
+    if (b.id === "save-bookmark") {
+      if (!studioMode && !preview) {
+        const info = await api("CONNECT_VIDEO", { tabId });
+        if (info?.videoId !== videoId)
+          throw new Error("The video changed. Try again.");
+        videoPosition = Math.max(0, Number(info.currentTime) || 0);
+      }
+      await api("BOOKMARK_ADD", {
+        videoId,
+        timestamp: videoPosition,
+        label: $("#bookmark-label").value || "Saved moment",
+      });
+      await refresh(true);
+      notice("Moment saved in your notebook.");
+      return;
+    }
+    if (b.dataset.deleteBookmark) {
+      await api("BOOKMARK_DELETE", { videoId, id: b.dataset.deleteBookmark });
+      await refresh(true);
+      return;
+    }
+
     if (b.dataset.tab) {
       active = b.dataset.tab;
       location.hash = active;
@@ -1089,6 +1241,7 @@ document.addEventListener("click", async (e) => {
           if (capture) await content("CAPTURE_STOP");
           capture = false;
           await api("CLEAR");
+          notebookDrafts.clear();
           researchResult = null;
           selectedNode = null;
           $("#settings-dialog").close();

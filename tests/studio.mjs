@@ -83,6 +83,14 @@ export async function testStudio(browser, port = 4174) {
           ],
           questions: [],
         });
+      else if (
+        !body.response_format &&
+        /TASK: Create (?:a self-test|a revision deck)/.test(
+          body.messages[1].content,
+        )
+      )
+        content =
+          "### Practice 1\nWhich install command is given?\n\n<details><summary>Reveal answer</summary>\n\nRun npm install. [E1]\n\n</details>";
       else if (body.response_format)
         content = JSON.stringify({
           status: "supported",
@@ -140,10 +148,36 @@ export async function testStudio(browser, port = 4174) {
       (await page.locator(".result").textContent()).includes("npm install"),
     );
     await page.locator('[data-generate="notes"]:enabled').waitFor();
+    await page.locator(".personal-notebook > summary").click();
+    await page
+      .locator("#personal-notes")
+      .fill("Remember to compare versions before installing.");
+    await page.locator("#save-personal-notes").click();
+    await page.getByText("Your notes are saved.", { exact: true }).waitFor();
+    await page.locator(".personal-notebook > summary").click();
+    await page.locator("#bookmark-label").fill("Useful setup step");
+    await page.locator("#save-bookmark").click();
+    await page
+      .getByText("Moment saved in your notebook.", { exact: true })
+      .waitFor();
+    await page.locator('[data-generate="quiz"]').click();
+    await page.getByText("YOUR PRACTICE QUIZ", { exact: true }).waitFor();
+    const answer = page.locator(".result .markdown details").first();
+    await answer.waitFor();
+    assert.equal(await answer.getAttribute("open"), null);
+    await answer.locator("summary").click();
+    assert.ok((await answer.textContent()).includes("npm install"));
+    await page.locator('[data-generate="flashcards"]:enabled').waitFor();
+    await page.locator('[data-generate="flashcards"]').click();
+    await page.getByText("YOUR FLASHCARDS", { exact: true }).waitFor();
+    await page.locator('[data-generate="notes"]:enabled').waitFor();
+    await page.locator('[data-generate="notes"]').click();
+    await page.getByText("YOUR STUDY NOTES", { exact: true }).waitFor();
+
     await page.locator('[data-tab="library"]').click();
     assert.equal(await page.locator(".library-card").count(), 1);
     await page.locator("details[data-history-id] summary").click();
-    await page.locator(".history-outputs .result").waitFor();
+    await page.locator(".history-outputs .result").first().waitFor();
     assert.ok(
       (await page.locator(".history-outputs").textContent()).includes(
         "npm install",
@@ -322,6 +356,11 @@ export async function testStudio(browser, port = 4174) {
     await page.locator('[data-tab="lab"]').click();
     await page.getByText("VIDEO ANALYSIS", { exact: true }).waitFor();
     await page.locator('[data-tab="library"]').click();
+    await page.locator("#library-search").fill("phrase-not-in-library");
+    assert.equal(await page.locator("[data-library-id]:visible").count(), 0);
+    await page.locator("#library-search").fill("npm install");
+    assert.ok((await page.locator("[data-library-id]:visible").count()) > 0);
+    await page.locator("#library-search").fill("");
     await page.locator("#research-topic").fill("Node.js");
     await page.locator("#research-form .primary").click();
     await page.locator(".result").waitFor();

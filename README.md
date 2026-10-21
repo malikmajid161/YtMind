@@ -55,7 +55,7 @@ Learning data lives in IndexedDB on the extension or browser origin. Video histo
 
 The API key is stored locally and kept out of content scripts, reports and release packages. Groq receives source text for generation/verification and audio for transcription. Local OCR images stay local. Automatic notes and code processing can be disabled in Settings. The local helper receives video identifiers, not API keys. Remove the key separately from clearing learning data.
 
-Extension permissions: storage, sidePanel, alarms, activeTab, tabCapture and offscreen, plus YouTube and Groq host access. No microphone input or broad browsing access. The optional browser recording workflow uses a sharing chooser; the extension's tab-audio workflow uses the installation/invocation grant.
+Extension permissions: storage, sidePanel, alarms, activeTab, tabCapture and offscreen, plus HTTP/HTTPS host access for automatic reading history. Readable page text, title, stripped URL, visit count and furthest scroll position are stored locally; Library offers pause/resume, search, export and deletion. Form fields/editable content are excluded. Known sensitive domains, account/payment paths, password/card forms, local/internal pages and incognito are excluded. These exclusions are heuristic and not a universal sensitive-data detector; pause before reading private material. Captured pages are not automatically sent to Groq. The optional browser recording workflow uses a sharing chooser; the extension's tab-audio workflow uses the installation/invocation grant.
 
 ## Verification and research
 
@@ -90,3 +90,9 @@ The report covers captured speech, not necessarily the full video. Without compl
 With the native workspace open, captionless Shorts automatically request full-audio transcription after a five-second settling period. The paired local helper and a configured Groq key are required. One job runs at a time; downloaded audio and API processing are not instantaneous. Every video and Short recorded by YTMind is retained in Library without pinning. Older outputs remain as generated until rerun.
 
 Silent videos can use captured screen text without captions or audio. Open YTMind, play through or capture relevant slides/code, then generate notes or choose Analyze video / Short. Reports identify written evidence separately from spoken content. Clips with neither readable text nor audio are not fully understood by the current text-based analysis.
+
+### Chrome reading history and study tools (3.0.34)
+
+Library now saves readable webpages automatically on this device as you browse. Use **Pause reading history** / **Resume reading history** there; the extension icon's ON/OFF badge reflects that preference. Search saved page text, open its original link, export the history, or delete individual entries. Page snapshots are local and are not automatically sent to AI. Forms, editable fields, private browsing and known sensitive pages are excluded; exclusions are heuristic, so pause before reading private material. This does not record all browser actions, password entry, downloads or every media player, and does not recover browsing from before installation. Some pages and built-in PDF viewers cannot be read. Chrome may request expanded website access after this update.
+
+Under Notes, use **Quiz me** or **Create flashcards**, then reveal answers and follow their source references. **Your notebook & saved moments** stores your own notes and labelled timestamps separately from captured evidence. Search your video Library for phrases in saved titles, transcripts, generated answers, notebook notes and bookmark labels. Use Save my notes to persist your notebook edits.

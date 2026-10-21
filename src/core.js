@@ -112,7 +112,9 @@ export function retrieve(all, query, mode = "chat", budget = 18000) {
   ];
   let selected;
   if (
-    ["notes", "actions", "speaking", "graph"].includes(mode) ||
+    ["notes", "actions", "speaking", "quiz", "flashcards", "graph"].includes(
+      mode,
+    ) ||
     /main idea|summari[sz]e|overview/i.test(query) ||
     (mode === "chat" &&
       /^(?:What prerequisites are mentioned\??|Explain the code shown in the video)$/i.test(

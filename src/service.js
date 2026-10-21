@@ -1,3 +1,4 @@
+import { readingURL } from "./web-history.js";
 import {
   defaults,
   chunks,
@@ -32,6 +33,88 @@ export function createService({
   const busy = new Set();
   async function dispatch(m) {
     switch (m.type) {
+      case "READING_STATUS": {
+        const preference = await store.read("meta", "reading-preference");
+        return { enabled: preference?.enabled !== false };
+      }
+      case "READING_TOGGLE":
+        return mutate(async () => {
+          if (typeof m.enabled !== "boolean")
+            throw new Error("Invalid reading preference.");
+          await store.put("meta", {
+            id: "reading-preference",
+            enabled: m.enabled,
+          });
+          return { enabled: m.enabled };
+        });
+      case "PAGE_CAPTURE":
+        return mutate(async () => {
+          if (
+            (await store.read("meta", "reading-preference"))?.enabled === false
+          )
+            return { skipped: true };
+          const url = readingURL(m.url);
+          const text = String(m.text || "")
+            .slice(0, 40000)
+            .trim();
+          if (!url || text.length < 80) return { skipped: true };
+          const id = `page:${url}`;
+          const old = await store.read("pages", id);
+          const visitToken = String(m.visitToken || "").slice(0, 80);
+          const value = {
+            id,
+            url,
+            title: String(m.title || url).slice(0, 300),
+            text,
+            firstSeenAt: old?.firstSeenAt || Date.now(),
+            lastSeenAt: Date.now(),
+            visits:
+              (old?.visits || 0) +
+              (!old || old.visitToken !== visitToken ? 1 : 0),
+            visitToken,
+            progress: Math.max(
+              old?.progress || 0,
+              Math.max(0, Math.min(100, Number(m.progress) || 0)),
+            ),
+          };
+          await store.put("pages", value);
+          return { saved: true };
+        });
+      case "PAGE_DELETE":
+        return mutate(() =>
+          store.tx(["pages"], (t) =>
+            t.objectStore("pages").delete(String(m.id)),
+          ),
+        );
+      case "NOTE_SAVE":
+        return mutate(async () => {
+          const s = await store.read("sessions", m.videoId);
+          if (!s) throw new Error("Open a saved video first.");
+          s.personalNotes = String(m.text || "").slice(0, 20000);
+          await store.put("sessions", s);
+          return { saved: true };
+        });
+      case "BOOKMARK_ADD":
+        return mutate(async () => {
+          const s = await store.read("sessions", m.videoId);
+          if (!s || !Number.isFinite(m.timestamp) || m.timestamp < 0)
+            throw new Error("Choose a valid video moment.");
+          const bookmark = {
+            id: crypto.randomUUID(),
+            timestamp: m.timestamp,
+            label: String(m.label || "Saved moment").slice(0, 300),
+          };
+          s.bookmarks = [...(s.bookmarks || []), bookmark];
+          await store.put("sessions", s);
+          return bookmark;
+        });
+      case "BOOKMARK_DELETE":
+        return mutate(async () => {
+          const s = await store.read("sessions", m.videoId);
+          if (!s) return;
+          s.bookmarks = (s.bookmarks || []).filter((b) => b.id !== m.id);
+          await store.put("sessions", s);
+        });
       case "AUDIO_STATE":
         return mutate(async () => {
           const s = await store.read("sessions", m.videoId);
@@ -209,6 +292,9 @@ export function createService({
         });
         return {
           sessions: await store.read("sessions"),
+          pages: await store.read("pages"),
+          readingEnabled:
+            (await store.read("meta", "reading-preference"))?.enabled !== false,
           nodes: await store.read("nodes"),
           edges: await store.read("edges"),
           settings: {
@@ -566,7 +652,9 @@ export function createService({
       const deep =
         m.mode === "talkshow" ||
         (config.deep &&
-          ["notes", "actions", "speaking"].includes(m.mode) &&
+          ["notes", "actions", "speaking", "quiz", "flashcards"].includes(
+            m.mode,
+          ) &&
           !m.auto);
       const jobId = deep ? String(m.jobId || crypto.randomUUID()) : null;
       if (deep) {

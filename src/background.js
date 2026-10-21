@@ -1,3 +1,4 @@
+import { readingURL } from "./web-history.js";
 import { Store } from "./db.js";
 import { createService } from "./service.js";
 import { audioCommand, audioClock } from "./capture-audio.js";
@@ -23,6 +24,22 @@ async function dispatch(m, sender) {
   const fromContent = !sender.url?.startsWith(chrome.runtime.getURL(""));
   if (sender.id !== chrome.runtime.id) throw new Error("Untrusted sender.");
   if (fromContent) {
+    if (["READING_STATUS", "PAGE_CAPTURE"].includes(m.type)) {
+      const tab = await chrome.tabs.get(sender.tab?.id);
+      if (
+        (sender.frameId && sender.frameId !== 0) ||
+        sender.tab?.incognito ||
+        tab?.incognito ||
+        !readingURL(tab?.url)
+      )
+        throw new Error("This page is excluded from reading history.");
+      if (
+        m.type === "PAGE_CAPTURE" &&
+        readingURL(m.url) !== readingURL(tab.url)
+      )
+        throw new Error("Page changed before capture.");
+      return service.dispatch(m);
+    }
     const url = new URL(sender.url);
     if (url.origin !== "https://www.youtube.com" || !contentTypes.has(m.type))
       throw new Error("Unsupported content request.");
@@ -39,6 +56,11 @@ async function dispatch(m, sender) {
       throw new Error("Video changed. Retry on the current video.");
   } else if (!sender.url?.startsWith(chrome.runtime.getURL("")))
     throw new Error("Untrusted extension page.");
+  if (m.type === "READING_TOGGLE") {
+    const result = await service.dispatch(m);
+    await readingBadge();
+    return result;
+  }
   if (m.type === "MEDIA_HELPER") return helperRequest(m);
   if (m.type === "DRAWER_PREFERENCE") {
     if (m.width !== undefined) {
@@ -116,6 +138,17 @@ const configurePanel = () =>
     .setPanelBehavior({ openPanelOnActionClick: true })
     .catch((error) => console.error("YTMind panel setup:", error.message));
 configurePanel();
+async function readingBadge() {
+  const { enabled } = await service.dispatch({ type: "READING_STATUS" });
+  await chrome.action?.setBadgeText?.({ text: enabled ? "ON" : "OFF" });
+  await chrome.action?.setBadgeBackgroundColor?.({
+    color: enabled ? "#34513d" : "#6f6f6f",
+  });
+  await chrome.action?.setTitle?.({
+    title: `YTMind · Reading history ${enabled ? "on" : "paused"}`,
+  });
+}
+readingBadge().catch(() => {});
 async function startVideo(tab, audio = true) {
   if (!tab?.id || !youtubeVideoId(tab.url)) return;
   const info = await connectVideoTab(tab.id);
@@ -193,15 +226,21 @@ chrome.runtime.onInstalled.addListener(() => {
   // Updating/reloading an extension does not refresh existing YouTube tabs.
   // Reattach their content script so the on-page launcher returns immediately.
   chrome.tabs
-    .query({ url: "https://www.youtube.com/*" })
+    .query({ url: ["http://*/*", "https://*/*"] })
     .then((tabs) =>
       Promise.allSettled(
         tabs
-          .filter((tab) => youtubeVideoId(tab.url))
+          .filter(
+            (tab) =>
+              !tab.incognito &&
+              (youtubeVideoId(tab.url) || readingURL(tab.url)),
+          )
           .map((tab) =>
             chrome.scripting.executeScript({
               target: { tabId: tab.id },
-              files: ["content.js"],
+              files: [
+                youtubeVideoId(tab.url) ? "content.js" : "web-content.js",
+              ],
             }),
           ),
       ),

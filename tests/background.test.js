@@ -207,3 +207,50 @@ test("YouTube drawer preference requests expose only a validated width", async (
     /Unsupported content/,
   );
 });
+
+test("ordinary webpages can save reading data but cannot access extension settings", async () => {
+  liveTabUrl = "https://reading.example.test/article";
+  const sender = {
+    id: "test-extension",
+    url: liveTabUrl,
+    tab: { id: 2 },
+    frameId: 0,
+  };
+  await dispatch(
+    {
+      type: "PAGE_CAPTURE",
+      url: liveTabUrl,
+      title: "Reading",
+      text: "Useful public page content. ".repeat(8),
+      visitToken: "test",
+    },
+    sender,
+  );
+  assert.equal((await dispatch({ type: "STATE" }, trusted)).pages.length, 1);
+  await assert.rejects(
+    dispatch({ type: "SETTINGS" }, sender),
+    /Unsupported content/,
+  );
+  await assert.rejects(
+    dispatch(
+      {
+        type: "PAGE_CAPTURE",
+        url: "https://other.example.test/article",
+        text: "x".repeat(100),
+      },
+      sender,
+    ),
+    /Page changed/,
+  );
+  await assert.rejects(
+    dispatch(
+      { type: "READING_STATUS" },
+      { ...sender, tab: { id: 2, incognito: true } },
+    ),
+    /excluded/,
+  );
+  await assert.rejects(
+    dispatch({ type: "READING_STATUS" }, { ...sender, frameId: 3 }),
+    /excluded/,
+  );
+});

@@ -20,7 +20,7 @@ await build({
   sourcemap: true,
 });
 await build({
-  entryPoints: ["src/content.js"],
+  entryPoints: ["src/content.js", "src/web-content.js"],
   outdir: "dist",
   bundle: true,
   format: "iife",

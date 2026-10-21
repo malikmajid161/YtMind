@@ -1,6 +1,6 @@
 {
   "name": "ytmind",
-  "version": "3.0.33",
+  "version": "3.0.34",
   "private": true,
   "type": "module",
   "scripts": {
@@ -26,7 +26,8 @@
     "test:batch:live": "node tests/live-batch.mjs",
     "test:code:live": "node tests/live-code.mjs",
     "test:link:live": "node tests/live-link.mjs",
-    "start:helper": "node scripts/native-helper.mjs"
+    "start:helper": "node scripts/native-helper.mjs",
+    "test:reading": "node tests/reading-browser.mjs"
   },
   "dependencies": {
     "@tesseract.js-data/eng": "^1.0.0",

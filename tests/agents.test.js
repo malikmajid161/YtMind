@@ -318,3 +318,23 @@ test("400 errors distinguish JSON failures and model availability without exposi
     assert.equal(count, code === "json_validate_failed" ? 2 : 1);
   }
 });
+
+test("revision quizzes and flashcards cite the captured evidence and preserve reveal blocks", async () => {
+  for (const mode of ["quiz", "flashcards"]) {
+    let task = "";
+    const result = await generate(
+      { sage: false },
+      mode,
+      "",
+      evidence,
+      async (_settings, _system, user) => {
+        task = user;
+        return "### Question 1\nWhat command installs dependencies?\n\n<details><summary>Reveal answer</summary>\n\nRun npm install. [E1]\n\n</details>";
+      },
+    );
+    assert.match(task, mode === "quiz" ? /self-test/ : /revision deck/);
+    assert.match(result.answer, /<details>/);
+    assert.match(result.answer, /\[E1\]/);
+    assert.equal(result.mode, mode);
+  }
+});

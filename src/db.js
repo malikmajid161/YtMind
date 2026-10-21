@@ -7,9 +7,16 @@ export class Store {
     if (this.db) return this.db;
     if (this.opening) return this.opening;
     this.opening = new Promise((resolve, reject) => {
-      const r = indexedDB.open(this.name, 3);
+      const r = indexedDB.open(this.name, 4);
       r.onupgradeneeded = () => {
-        for (const name of ["sessions", "frames", "nodes", "edges", "meta"])
+        for (const name of [
+          "sessions",
+          "frames",
+          "nodes",
+          "edges",
+          "meta",
+          "pages",
+        ])
           if (!r.result.objectStoreNames.contains(name))
             r.result.createObjectStore(name, { keyPath: "id" });
         const frames = r.transaction.objectStore("frames");
@@ -162,15 +169,21 @@ export class Store {
     return (await this.read("meta", "generation"))?.value || 0;
   }
   clear() {
-    return this.tx(["sessions", "frames", "nodes", "edges", "meta"], (t) => {
-      const meta = t.objectStore("meta");
-      const r = meta.get("generation");
-      r.onsuccess = () => {
-        meta.clear();
-        meta.put({ id: "generation", value: (r.result?.value || 0) + 1 });
-      };
-      for (const n of ["sessions", "frames", "nodes", "edges"])
-        t.objectStore(n).clear();
-    });
+    return this.tx(
+      ["sessions", "frames", "nodes", "edges", "meta", "pages"],
+      (t) => {
+        const meta = t.objectStore("meta");
+        const r = meta.get("generation");
+        const preference = meta.get("reading-preference");
+        preference.onsuccess = () => {
+          const savedPreference = preference.result;
+          meta.clear();
+          meta.put({ id: "generation", value: (r.result?.value || 0) + 1 });
+          if (savedPreference) meta.put(savedPreference);
+        };
+        for (const n of ["sessions", "frames", "nodes", "edges", "pages"])
+          t.objectStore(n).clear();
+      },
+    );
   }
 }
