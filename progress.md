@@ -306,3 +306,11 @@ Caption checkpoint regression results: 50/50 unit tests, build, browser UI integ
 - Added per-finding Who said it. Names are retained only when the exact supporting speech quote begins with the same explicit transcript label (Name: statement). Mentions, titles, guest lists and voices cannot establish attribution. Otherwise the report states that the speaker is not identified; no diarization or name-from-face/voice claim is made.
 - Verified 102 tests and build, including 250 speech segments plus a frame without a ten-item limit, and rejection of names mentioned in an excerpt without an attributable speaker label. Browser timeline search verification recorded after completion.
 - Chrome UI integration passed, including opening the full timeline and filtering/restoring moments; provider outputs mocked, browser/storage/OCR real.
+
+## 22 October 2026 — v3.0.33: silent-video screen-text support
+
+- Analyze video / Short now accepts readable frame text as well as speech. Frame findings are explicitly marked On-screen text, cannot acquire speaker names, and are instructed not to invent narration, voice or motion. Notes/Ask retain their existing frame-based support.
+- When captions are absent, generating tries the current screen and recognition before fetching audio. Readable screen evidence bypasses audio-helper requirements. Captionless Shorts with readable or pending frame text avoid immediate automatic audio fetching.
+- Added Screen text ready status. Silent slides, code and written demonstrations can be summarized from captured text. This is not general image/video understanding: clips without readable text and audio remain limited. No claim of whole-video visual coverage from one current frame.
+- Verified 105 tests and build, including silent frame-only generation/persistence with no transcription request, no invented speaker attribution and skipping automatic audio for readable silent Shorts. Browser check recorded after completion.
+- Browser workspace/UI checks passed with mocked provider outputs and real storage/OCR; timeline check waits for its deferred toggle rendering.

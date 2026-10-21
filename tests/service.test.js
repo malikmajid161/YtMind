@@ -373,3 +373,72 @@ test("talk-show analysis processes all speech sections with deep disabled and re
     globalThis.fetch = oldFetch;
   }
 });
+
+test("a silent video generates and saves frame-backed analysis without an audio request", async () => {
+  const [service] = services();
+  const videoId = "silent12345";
+  await service.dispatch({ type: "SESSION", videoId, title: "Silent setup" });
+  const id = await service.dispatch({
+    type: "FRAME",
+    videoId,
+    image: "data:image/jpeg;base64,AAAA",
+    timestamp: 8,
+  });
+  await service.dispatch({
+    type: "OCR",
+    id,
+    text: "Install Python using the setup wizard.",
+    confidence: 95,
+  });
+  const oldFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async (url, request) => {
+    calls++;
+    assert.match(url, /chat\/completions/);
+    assert.match(
+      JSON.parse(request.body).messages[1].content,
+      /Install Python/,
+    );
+    return Response.json({
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({
+              findings: [
+                {
+                  category: "instruction",
+                  speaker: "",
+                  target: "Python setup",
+                  rendering: "The screen shows how to install Python.",
+                  context: "Use the setup wizard shown in the instructions.",
+                  keywords: ["Python"],
+                  stance: "uncertain",
+                  support: {
+                    ref: 1,
+                    quote: "Install Python using the setup wizard.",
+                  },
+                },
+              ],
+              moreFindings: false,
+            }),
+          },
+        },
+      ],
+    });
+  };
+  try {
+    const output = await service.dispatch({
+      type: "GENERATE",
+      videoId,
+      mode: "talkshow",
+    });
+    assert.equal(calls, 1);
+    assert.equal(output.evidence[0].kind, "frame");
+    assert.match(output.answer, /On-screen text/);
+    const session = (await service.dispatch({ type: "STATE" })).sessions[0];
+    assert.equal(session.transcript.length, 0);
+    assert.equal(session.outputs.length, 1);
+  } finally {
+    globalThis.fetch = oldFetch;
+  }
+});

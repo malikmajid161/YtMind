@@ -21,7 +21,7 @@ const finding = {
   keywords: ["army", "policy"],
   support: { ref: 1, quote: "The army policy is wrong." },
 };
-test("discussion rejects fabricated quotes, invalid categories and frames as speech", () => {
+test("discussion rejects fabricated quotes, invalid categories and preserves frame modality", () => {
   const result = validateDiscussion(
     {
       findings: [
@@ -38,8 +38,8 @@ test("discussion rejects fabricated quotes, invalid categories and frames as spe
   assert.equal(
     validateDiscussion({ findings: [finding] }, [
       { ...evidence[0], kind: "frame" },
-    ]).findings.length,
-    0,
+    ]).findings[0].sourceKind,
+    "frame",
   );
 });
 test("discussion preserves quoted/rebutted context and reports bounded coverage", () => {
@@ -85,11 +85,27 @@ test("Shorts share video identification and full speech batching without samplin
   }));
   assert.deepEqual(batchEvidence(all, 7000).flat(), all);
 });
-test("frames-only discussion fails instead of inventing audio", async () => {
-  await assert.rejects(
-    analyzeDiscussion({}, [{ ...evidence[0], kind: "frame" }]),
-    /transcribed audio/,
-  );
+test("silent screen text can be analyzed without inventing a speaker", async () => {
+  const frame = {
+    ...evidence[0],
+    kind: "frame",
+    text: "Install Python. Run the setup wizard.",
+  };
+  const result = await analyzeDiscussion({}, [frame], async () => ({
+    findings: [
+      {
+        ...finding,
+        category: "instruction",
+        speaker: "Presenter",
+        rendering: "The screen instructs the viewer to install Python.",
+        context: "The setup wizard is the next shown instruction.",
+        support: { ref: 1, quote: "Install Python." },
+      },
+    ],
+  }));
+  assert.equal(result.structure.findings[0].speaker, null);
+  assert.match(result.answer, /On-screen text/);
+  assert.doesNotMatch(result.answer, /Who said it/);
 });
 
 test("unmatched generated findings fail rather than saving a misleading empty report", async () => {

@@ -1,3 +1,4 @@
+import { hasVisualSource } from "./visual-source.js";
 import { sourceTimeline } from "./source-timeline.js";
 import { contextMessage } from "./extension-context.js";
 import { createShortsFollower } from "./shorts-follow.js";
@@ -197,6 +198,9 @@ async function refresh(force = false) {
       s?.pinned ? "Deselect video for research" : "Select video for research",
     );
     frames = s ? await api("FRAMES", { videoId }) : [];
+    if (s && !s.transcript.length && hasVisualSource(frames))
+      $("#source-status").textContent =
+        "Screen text ready · captions and audio are optional";
     if (sourceNoticeContext && sourceNoticeContext !== sourceContext())
       notice("");
     const next = JSON.stringify([
@@ -220,6 +224,7 @@ async function refresh(force = false) {
         videoId,
         isShort: activeIsShort,
         session: s,
+        frames,
         busy: requestBusy || !!linkIngest,
         settings: state.settings,
       }).catch((e) => notice(e.message, true));
@@ -367,7 +372,7 @@ function render() {
     if (moments.length)
       html += `<details id="full-source-timeline"><summary>All captured moments · ${moments.length}</summary><p class="muted">Every saved speech segment and frame, in order. Original source wording is kept for checking. This may not cover the entire video.</p><label for="moment-search">Find a word or phrase</label><input id="moment-search" type="search" placeholder="Search all captured moments"><button class="secondary" id="download-moments">Download all moments</button><div id="moment-list"></div></details>`;
 
-    html += `<button class="primary" data-generate="talkshow" ${!s || requestBusy ? "disabled" : ""}>Analyze video / Short<span>↗</span></button><p class="muted">Review captured speech for key points, claims, events, instructions, opinions, relevant language and any law references. Every captured transcript section is processed; results are saved in history. Descriptive analysis, with unverified interpretations and legal claims.</p>`;
+    html += `<button class="primary" data-generate="talkshow" ${!s || requestBusy ? "disabled" : ""}>Analyze video / Short<span>↗</span></button><p class="muted">Review speech and readable screen text for key points, claims, events, instructions, opinions, relevant language and any law references. Every captured source section is processed; results are saved in history. Descriptive analysis, with unverified interpretations and legal claims.</p>`;
     const discussion = s?.outputs?.filter((o) => o.mode === "talkshow").at(-1);
     if (discussion) {
       const report = discussion.jobId
@@ -618,6 +623,36 @@ async function run(mode, query = "", resumeJob = null, sourceReady = false) {
     notice("Open a YouTube video before generating an answer.", true);
     return;
   }
+  // Try a readable screen before fetching audio. Silent slides/code do not
+  // need captions or an audio service to provide useful source material.
+  if (
+    !studioMode &&
+    !preview &&
+    !sourceReady &&
+    !resumeJob &&
+    !session().transcript?.length &&
+    !hasVisualSource(frames)
+  ) {
+    requestBusy = true;
+    const sourceVideo = videoId;
+    try {
+      notice("Reading the screen…");
+      const before = new Set(frames.map((f) => f.id));
+      await content("CAPTURE_ONCE");
+      for (let i = 0; i < 6 && videoId === sourceVideo; i++) {
+        frames = await api("FRAMES", { videoId: sourceVideo });
+        if (frames.some((f) => !before.has(f.id))) break;
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      }
+      await processFrames();
+      await refresh(true);
+    } catch (error) {
+      notice(error.message, true);
+    } finally {
+      requestBusy = false;
+    }
+    if (videoId !== sourceVideo) return;
+  }
   if (
     !studioMode &&
     !preview &&
@@ -625,7 +660,7 @@ async function run(mode, query = "", resumeJob = null, sourceReady = false) {
     !resumeJob &&
     session() &&
     !session().transcript?.length &&
-    (mode === "talkshow" || !frames.some((f) => (f.ocrText || "").length >= 80))
+    !hasVisualSource(frames)
   ) {
     let helperReady = false;
     try {

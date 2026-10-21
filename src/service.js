@@ -562,7 +562,7 @@ export function createService({
           sessions.map(async (s) => chunks(s, await store.frames(s.id))),
         )
       ).flat();
-      if (m.mode === "talkshow") all = all.filter((e) => e.kind === "caption");
+
       const deep =
         m.mode === "talkshow" ||
         (config.deep &&

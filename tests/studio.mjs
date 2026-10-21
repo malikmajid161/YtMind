@@ -37,7 +37,7 @@ export async function testStudio(browser, port = 4174) {
       const body = route.request().postDataJSON(),
         system = body.messages[0].content;
       let content;
-      if (system.startsWith("Analyze video speech"))
+      if (system.startsWith("Analyze captured video evidence"))
         content = JSON.stringify({ findings: [], moreFindings: false });
       else if (system.startsWith("Extract only programming")) {
         const source = body.messages[1].content;
@@ -292,12 +292,14 @@ export async function testStudio(browser, port = 4174) {
     );
     await page.locator('[data-tab="lab"]').click();
     await page.locator("#full-source-timeline > summary").click();
+    await page.locator("#moment-list .source-proof").first().waitFor();
     assert.ok((await page.locator("#moment-list .source-proof").count()) > 0);
     await page
       .locator("#moment-search")
       .fill("phrase-that-is-not-present-anywhere");
     assert.equal(await page.locator("#moment-list .source-proof").count(), 0);
     await page.locator("#moment-search").fill("");
+    await page.locator("#moment-list .source-proof").first().waitFor();
     assert.ok((await page.locator("#moment-list .source-proof").count()) > 0);
     await page.locator("#full-source-timeline > summary").click();
     await page.locator('[data-lab="conflicts"]').click();

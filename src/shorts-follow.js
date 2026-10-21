@@ -1,3 +1,4 @@
+import { hasVisualSource } from "./visual-source.js";
 // Wait for navigation/captions to settle; attempt each captionless Short once
 // per workspace lifetime. Manual retry remains available after failures.
 export function createShortsFollower({
@@ -8,13 +9,22 @@ export function createShortsFollower({
 }) {
   const seen = new Map();
   const attempted = new Set();
-  return async function follow({ videoId, isShort, session, busy, settings }) {
+  return async function follow({
+    videoId,
+    isShort,
+    session,
+    frames,
+    busy,
+    settings,
+  }) {
     if (!videoId || !isShort || !session) return;
     if (!seen.has(videoId)) seen.set(videoId, now());
     if (
       busy ||
       !(settings.hasApiKey || settings.apiKey) ||
       session.transcript?.length ||
+      hasVisualSource(frames) ||
+      frames?.some((f) => f.status === "pending") ||
       attempted.has(videoId) ||
       now() - seen.get(videoId) < 5000
     )
